@@ -251,30 +251,26 @@ function setupEventListeners() {
 
 // --- Handle download button click ---
 downloadBtn.addEventListener('click', () => {
-    console.log("✅ Download button clicked");
-    const fileType = Array.from(fileTypeRadios).find(r => r.checked)?.value;
-    if (!fileType) {
-        tg.showAlert('Please select a file type.');
+    console.log("🔥 CLICK DETECTED");
+
+    if (!window.Telegram || !window.Telegram.WebApp) {
+        console.error("❌ Not inside Telegram WebApp context");
+        alert("Not inside Telegram");
         return;
     }
 
-    const payload = {
-        action: 'download_paper',
-        exam: currentSelections.exam,
-        board: currentSelections.board,
-        subject: currentSelections.subject,
-        year: currentSelections.year,
-        month: currentSelections.month,
-        paper: currentSelections.paper,
-        file_type: fileType
-    };
+    const tg = window.Telegram.WebApp;
 
-    console.log("📦 Sending payload:", payload);
-    tg.sendData(JSON.stringify(payload));
+    console.log("tg object:", tg);
+    console.log("initData:", tg.initData);
+    console.log("sendData exists?", typeof tg.sendData);
 
-    // Optional: show a loading indicator (but sendData closes the web app)
-    downloadBtn.disabled = true;
-    downloadBtn.textContent = 'Sending...';
+    try {
+        tg.sendData("hello_from_webapp_test");
+        console.log("✅ sendData executed");
+    } catch (err) {
+        console.error("❌ sendData error:", err);
+    }
 });
 
 // --- Start loading options ---
