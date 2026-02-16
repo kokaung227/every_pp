@@ -19,6 +19,17 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand(); // Expand to full height
 
+// --- Display personalized greeting ---
+const greetingDiv = document.getElementById('greeting');
+if (greetingDiv) {
+    const user = tg.initDataUnsafe?.user;
+    if (user && user.first_name) {
+        greetingDiv.textContent = `Hello, ${user.first_name}! 👋`;
+    } else {
+        greetingDiv.textContent = 'Welcome! 👋';
+    }
+}
+
 // --- DOM elements ---
 const loader = document.getElementById('loader');
 const filtersDiv = document.getElementById('filters');
