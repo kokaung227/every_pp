@@ -225,6 +225,7 @@ function setupEventListeners() {
 
 // --- Handle download button click ---
 downloadBtn.addEventListener('click', () => {
+    console.log("✅ Download button clicked");
     const fileType = Array.from(fileTypeRadios).find(r => r.checked)?.value;
     if (!fileType) {
         tg.showAlert('Please select a file type.');
@@ -242,7 +243,7 @@ downloadBtn.addEventListener('click', () => {
         file_type: fileType
     };
 
-    // Send data to bot
+    console.log("📦 Sending payload:", payload);
     tg.sendData(JSON.stringify(payload));
 
     // Optional: show a loading indicator (but sendData closes the web app)
