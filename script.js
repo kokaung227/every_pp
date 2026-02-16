@@ -19,6 +19,8 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand(); // Expand to full height
 
+console.log("initData:", tg.initData);
+
 // --- Display personalized greeting ---
 const greetingDiv = document.getElementById('greeting');
 if (greetingDiv) {
