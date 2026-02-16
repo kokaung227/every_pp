@@ -60,6 +60,7 @@ async function loadOptions() {
         const response = await fetch(OPTIONS_URL);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         optionsData = await response.json();
+        console.log("✅ Options loaded:", optionsData);
         loader.style.display = 'none';
         filtersDiv.style.display = 'block';
 
@@ -162,7 +163,9 @@ function updateDropdowns() {
 // --- Event listeners for dropdowns ---
 function setupEventListeners() {
     examSelect.addEventListener('change', (e) => {
-        currentSelections.exam = e.target.value;
+        const selected = e.target.value;
+        console.log(`📋 Exam selected: ${selected}`);
+        currentSelections.exam = selected;
         // Reset dependent selections
         currentSelections.board = '';
         currentSelections.subject = '';
@@ -178,7 +181,9 @@ function setupEventListeners() {
     });
 
     boardSelect.addEventListener('change', (e) => {
-        currentSelections.board = e.target.value;
+        const selected = e.target.value;
+        console.log(`📋 Board selected: ${selected}`);
+        currentSelections.board = selected;
         currentSelections.subject = '';
         currentSelections.year = '';
         currentSelections.month = '';
@@ -191,7 +196,9 @@ function setupEventListeners() {
     });
 
     subjectSelect.addEventListener('change', (e) => {
-        currentSelections.subject = e.target.value;
+        const selected = e.target.value;
+        console.log(`📋 Subject selected: ${selected}`);
+        currentSelections.subject = selected;
         currentSelections.year = '';
         currentSelections.month = '';
         currentSelections.paper = '';
@@ -202,7 +209,9 @@ function setupEventListeners() {
     });
 
     yearSelect.addEventListener('change', (e) => {
-        currentSelections.year = e.target.value;
+        const selected = e.target.value;
+        console.log(`📋 Year selected: ${selected}`);
+        currentSelections.year = selected;
         currentSelections.month = '';
         currentSelections.paper = '';
         monthSelect.value = '';
@@ -211,14 +220,18 @@ function setupEventListeners() {
     });
 
     monthSelect.addEventListener('change', (e) => {
-        currentSelections.month = e.target.value;
+        const selected = e.target.value;
+        console.log(`📋 Month selected: ${selected}`);
+        currentSelections.month = selected;
         currentSelections.paper = '';
         paperSelect.value = '';
         updateDropdowns();
     });
 
     paperSelect.addEventListener('change', (e) => {
-        currentSelections.paper = e.target.value;
+        const selected = e.target.value;
+        console.log(`📋 Paper selected: ${selected}`);
+        currentSelections.paper = selected;
         updateDropdowns();
     });
 }
