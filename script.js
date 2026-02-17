@@ -152,16 +152,20 @@ function updateDropdowns() {
 
     // --- Paper dropdown ---
     if (exam && board && subject && year && month && optionsData[exam]?.[board]?.[subject]?.[year]?.[month]) {
-        const papers = optionsData[exam][board][subject][year][month];
+        const papers = Object.keys(optionsData[exam][board][subject][year][month]).sort();
         populateSelect(paperSelect, papers, 'Select paper');
-        // Keep the existing paper selection if it's still valid
+        
+        // Keep existing paper selection if valid
         const currentPaper = currentSelections.paper;
         if (currentPaper && papers.includes(currentPaper)) {
             paperSelect.value = currentPaper;
         } else {
             paperSelect.value = '';
-            currentSelections.paper = ''; // reset if invalid
+            currentSelections.paper = '';
         }
+
+        // Update radio button availability based on selected paper
+        updateFileTypeOptions();
     } else {
         populateSelect(paperSelect, [], 'Select paper');
         paperSelect.value = '';
@@ -171,6 +175,40 @@ function updateDropdowns() {
     // Enable download button only when all selections are made
     const allSelected = exam && board && subject && year && month && paperSelect.value;
     downloadBtn.disabled = !allSelected;
+}
+
+function updateFileTypeOptions() {
+    const { exam, board, subject, year, month, paper } = currentSelections;
+    
+    // Get file availability for current paper
+    const paperInfo = optionsData?.[exam]?.[board]?.[subject]?.[year]?.[month]?.[paper];
+    
+    if (paperInfo) {
+        // Enable/disable radio buttons based on availability
+        const qpRadio = Array.from(fileTypeRadios).find(r => r.value === 'qp');
+        const msRadio = Array.from(fileTypeRadios).find(r => r.value === 'ms');
+        
+        if (qpRadio) {
+            qpRadio.disabled = !paperInfo.has_qp;
+            qpRadio.parentElement.style.opacity = paperInfo.has_qp ? '1' : '0.5';
+        }
+        if (msRadio) {
+            msRadio.disabled = !paperInfo.has_ms;
+            msRadio.parentElement.style.opacity = paperInfo.has_ms ? '1' : '0.5';
+        }
+        
+        // Auto-select available option if current selection is disabled
+        if (qpRadio && msRadio) {
+            const currentChecked = Array.from(fileTypeRadios).find(r => r.checked);
+            if (currentChecked && currentChecked.disabled) {
+                if (qpRadio && !qpRadio.disabled) {
+                    qpRadio.checked = true;
+                } else if (msRadio && !msRadio.disabled) {
+                    msRadio.checked = true;
+                }
+            }
+        }
+    }
 }
 
 // --- Event listeners for dropdowns ---
@@ -242,10 +280,11 @@ function setupEventListeners() {
     });
 
     paperSelect.addEventListener('change', (e) => {
-        const selected = e.target.value;
-        console.log(`📋 Paper selected: ${selected}`);
-        currentSelections.paper = selected;
-        updateDropdowns();
+    const selected = e.target.value;
+    console.log(`📋 Paper selected: ${selected}`);
+    currentSelections.paper = selected;
+    updateDropdowns();
+    updateFileTypeOptions();  // Add this line
     });
 }
 
