@@ -250,6 +250,7 @@ function setupEventListeners() {
 }
 
 // --- Handle download button click ---
+// --- Handle download button click ---
 downloadBtn.addEventListener('click', async () => {
     console.log("✅ Download button clicked");
     const fileType = Array.from(fileTypeRadios).find(r => r.checked)?.value;
@@ -278,6 +279,11 @@ downloadBtn.addEventListener('click', async () => {
 
     console.log("📦 Sending to VPS:", payload);
 
+    // Disable button during request and show sending state
+    downloadBtn.disabled = true;
+    const originalText = downloadBtn.textContent;
+    downloadBtn.textContent = 'Sending...';
+
     try {
         const response = await fetch(API_BASE_URL + '/api/download', {
             method: 'POST',
@@ -291,13 +297,14 @@ downloadBtn.addEventListener('click', async () => {
         } else {
             tg.showAlert('❌ Error: ' + (result.error || 'Unknown error'));
         }
-       } catch (err) {
+    } catch (err) {
         console.error('Fetch error:', err);
         tg.showAlert('❌ Network error: ' + err.message);
+    } finally {
+        // Re-enable button and restore original text
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = originalText;
     }
-
-    downloadBtn.disabled = true;
-    downloadBtn.textContent = 'Sent';
 });
 
 // --- Start loading options ---
