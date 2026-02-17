@@ -250,27 +250,54 @@ function setupEventListeners() {
 }
 
 // --- Handle download button click ---
-downloadBtn.addEventListener('click', () => {
-    console.log("🔥 CLICK DETECTED");
-
-    if (!window.Telegram || !window.Telegram.WebApp) {
-        console.error("❌ Not inside Telegram WebApp context");
-        alert("Not inside Telegram");
+downloadBtn.addEventListener('click', async () => {
+    console.log("✅ Download button clicked");
+    const fileType = Array.from(fileTypeRadios).find(r => r.checked)?.value;
+    if (!fileType) {
+        tg.showAlert('Please select a file type.');
         return;
     }
 
-    const tg = window.Telegram.WebApp;
+    // Get chat ID from Telegram
+    const chatId = tg.initDataUnsafe?.chat?.id || tg.initDataUnsafe?.user?.id;
+    if (!chatId) {
+        tg.showAlert('Could not identify chat. Please reopen the app.');
+        return;
+    }
 
-    console.log("tg object:", tg);
-    console.log("initData:", tg.initData);
-    console.log("sendData exists?", typeof tg.sendData);
+    const payload = {
+        chat_id: chatId,
+        exam: currentSelections.exam,
+        board: currentSelections.board,
+        subject: currentSelections.subject,
+        year: currentSelections.year,
+        month: currentSelections.month,
+        paper: currentSelections.paper,
+        file_type: fileType
+    };
+
+    console.log("📦 Sending to VPS:", payload);
 
     try {
-        tg.sendData("hello_from_webapp_test");
-        console.log("✅ sendData executed");
+        const response = await fetch(API_BASE_URL + '/api/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            tg.showAlert('✅ File sent! Check Telegram.');
+        } else {
+            tg.showAlert('❌ Error: ' + (result.error || 'Unknown error'));
+        }
     } catch (err) {
-        console.error("❌ sendData error:", err);
+        console.error('Fetch error:', err);
+        tg.showAlert('❌ Network error. Please try again.');
     }
+
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = 'Sent';
 });
 
 // --- Start loading options ---
