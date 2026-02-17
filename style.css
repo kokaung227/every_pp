@@ -98,6 +98,20 @@ button:active {
     animation: fadeIn 0.5s ease;
 }
 
+.footer {
+    margin-top: 30px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--tg-theme-hint-color, #999999);
+}
+.footer a {
+    color: var(--tg-theme-button-color, #40a7e3);
+    text-decoration: none;
+}
+.footer a:hover {
+    text-decoration: underline;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
