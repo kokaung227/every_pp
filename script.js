@@ -291,9 +291,9 @@ downloadBtn.addEventListener('click', async () => {
         } else {
             tg.showAlert('❌ Error: ' + (result.error || 'Unknown error'));
         }
-    } catch (err) {
+       } catch (err) {
         console.error('Fetch error:', err);
-        tg.showAlert('❌ Network error. Please try again.');
+        tg.showAlert('❌ Network error: ' + err.message);
     }
 
     downloadBtn.disabled = true;
