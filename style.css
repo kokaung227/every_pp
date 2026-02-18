@@ -18,7 +18,7 @@ h1 {
     font-size: 24px;
     margin-bottom: 20px;
     text-align: center;
-    color: #1280AD  /*Denim*/
+    color: #1280AD;  /* Burnt Sienna */
     text-shadow: 0 2px 4px rgba(227, 108, 67, 0.3);
     animation: fadeIn 0.5s ease;
 }
@@ -73,7 +73,7 @@ select:hover:not(:disabled) {
 }
 
 select:focus {
-    border-color: #E36C43;
+    border-color: #06cef1;
     box-shadow: 0 0 0 3px rgba(227, 108, 67, 0.3);
 }
 
@@ -102,7 +102,7 @@ select:disabled {
 
 .file-type label:hover {
     transform: scale(1.02);
-    color: #06CEF1;  /* Bright Turquoise on hover */
+    color: #06CEF1;  /* Bright Turquoise */
 }
 
 .file-type input[type="radio"] {
@@ -113,7 +113,7 @@ select:disabled {
 }
 
 button {
-    background: linear-gradient(135deg, #E36C43 0%, #1280AD 100%);
+    background: linear-gradient(135deg, #06cef1 0%, #1280AD 100%);
     color: white;
     border: none;
     font-weight: 600;
@@ -124,7 +124,7 @@ button {
 button:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(227, 108, 67, 0.4);
-    background: linear-gradient(135deg, #06CEF1 0%, #E36C43 100%);
+    background: linear-gradient(135deg, #06CEF1 0%, #1280AD 100%);
 }
 
 button:active:not(:disabled) {
@@ -213,14 +213,14 @@ button:disabled {
 }
 
 .footer a {
-    color: #06CEF1;  /* Bright Turquoise for your @guyugyi link */
+    color: #06CEF1;  /* Bright Turquoise */
     text-decoration: none;
     font-weight: 500;
 }
 
 .footer a:hover {
     text-decoration: underline;
-    color: #E36C43;  /* Burnt Sienna on hover */
+    color: #E36C43;  /* Burnt Sienna */
 }
 
 /* Animations */
