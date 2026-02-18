@@ -6,8 +6,8 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: var(--tg-theme-bg-color, #121210);  /* Telegram background or fallback dark */
-    color: var(--tg-theme-text-color, #e0e0e0);    /* Telegram text color or fallback */
+    background: #121210;  /* Dark background */
+    color: var(--tg-theme-text-color, #e0e0e0);
     padding: 16px;
     max-width: 500px;
     margin: 0 auto;
@@ -18,8 +18,8 @@ h1 {
     font-size: 24px;
     margin-bottom: 20px;
     text-align: center;
-    color: #B80C3A;  /* Darker red from your image */
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    color: #F10C49;  /* Vibrant red from image */
+    text-shadow: 0 2px 4px rgba(241, 12, 73, 0.3);
     animation: fadeIn 0.5s ease;
 }
 
@@ -28,7 +28,7 @@ h1 {
     margin-bottom: 15px;
     font-size: 18px;
     font-weight: 500;
-    color: #B38B9E;  /* Darker pink */
+    color: #E3AAD6;  /* Light pink from image */
     animation: fadeIn 0.5s ease;
 }
 
@@ -50,15 +50,15 @@ label {
     margin-bottom: 6px;
     font-weight: 500;
     font-size: 14px;
-    color: #B38B9E;  /* Darker pink */
+    color: #E3AAD6;  /* Light pink */
 }
 
 select, button {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #C9B347;  /* Darker gold */
+    border: 2px solid #F4DD51;  /* Yellow from image */
     border-radius: 12px;
-    background: var(--tg-theme-secondary-bg-color, #2d2d2d);  /* Telegram secondary bg */
+    background: #1e1e1c;
     color: var(--tg-theme-text-color, #e0e0e0);
     font-size: 16px;
     appearance: none;
@@ -68,13 +68,13 @@ select, button {
 }
 
 select:hover:not(:disabled) {
-    border-color: #B80C3A;  /* Darker red */
-    background: var(--tg-theme-secondary-bg-color, #3d3d3d);
+    border-color: #F10C49;  /* Red */
+    background: #2a2a28;
 }
 
 select:focus {
-    border-color: #B80C3A;
-    box-shadow: 0 0 0 3px rgba(184, 12, 58, 0.3);
+    border-color: #F10C49;
+    box-shadow: 0 0 0 3px rgba(241, 12, 73, 0.3);
 }
 
 select:disabled {
@@ -102,18 +102,18 @@ select:disabled {
 
 .file-type label:hover {
     transform: scale(1.02);
-    color: #C9B347;  /* Darker gold on hover */
+    color: #F4DD51;  /* Yellow on hover */
 }
 
 .file-type input[type="radio"] {
-    accent-color: #B80C3A;  /* Darker red */
+    accent-color: #F10C49;  /* Red */
     width: 18px;
     height: 18px;
     cursor: pointer;
 }
 
 button {
-    background: linear-gradient(135deg, #B80C3A 0%, #B38B9E 100%);
+    background: linear-gradient(135deg, #F10C49 0%, #E3AAD6 100%);
     color: white;
     border: none;
     font-weight: 600;
@@ -123,8 +123,8 @@ button {
 
 button:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(184, 12, 58, 0.4);
-    background: linear-gradient(135deg, #C9B347 0%, #B80C3A 100%);
+    box-shadow: 0 4px 12px rgba(241, 12, 73, 0.4);
+    background: linear-gradient(135deg, #F4DD51 0%, #F10C49 100%);
 }
 
 button:active:not(:disabled) {
@@ -150,7 +150,7 @@ button:disabled {
     width: 48px;
     aspect-ratio: 1;
     border-radius: 50%;
-    background: #B38B9E;  /* Darker pink */
+    background: #E3AAD6;  /* Light pink */
     transform-origin: top;
     display: grid;
     animation: l3-0 1.5s infinite cubic-bezier(0.5, 0, 0.5, 1);
@@ -162,7 +162,7 @@ button:disabled {
 .loader-custom::after {
     content: "";
     grid-area: 1/1;
-    background: #C9B347;  /* Darker gold */
+    background: #F4DD51;  /* Yellow */
     border-radius: 50%;
     transform-origin: top;
     animation: inherit;
@@ -170,7 +170,7 @@ button:disabled {
 }
 
 .loader-custom::after {
-    background: #B80C3A;  /* Darker red */
+    background: #F10C49;  /* Red */
     --s: 180deg;
 }
 
@@ -186,12 +186,12 @@ button:disabled {
 
 .loading-text {
     font-size: 16px;
-    color: #B38B9E;
+    color: #E3AAD6;
     animation: pulse 1.5s ease-in-out infinite;
 }
 
 .error {
-    color: #B80C3A;
+    color: #F10C49;
     text-align: center;
     padding: 20px;
     animation: shake 0.5s ease;
@@ -200,7 +200,7 @@ button:disabled {
 .note {
     margin-top: 16px;
     font-size: 14px;
-    color: #B38B9E;
+    color: #E3AAD6;
     text-align: center;
     animation: fadeIn 0.5s ease 0.8s both;
 }
@@ -209,18 +209,18 @@ button:disabled {
     margin-top: 30px;
     text-align: center;
     font-size: 14px;
-    color: #B38B9E;
+    color: #E3AAD6;
 }
 
 .footer a {
-    color: #C9B347;
+    color: #40a7e3;  /* Light blue */
     text-decoration: none;
     font-weight: 500;
 }
 
 .footer a:hover {
     text-decoration: underline;
-    color: #B80C3A;
+    color: #F10C49;  /* Red on hover to match theme */
 }
 
 /* Animations */
