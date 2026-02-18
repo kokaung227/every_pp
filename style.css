@@ -6,8 +6,8 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: linear-gradient(135deg, #fff9f9 0%, #fff0f5 100%);
-    color: #333333;
+    background: #1a1a1a;  /* Dark background */
+    color: #e0e0e0;  /* Light gray text */
     padding: 16px;
     max-width: 500px;
     margin: 0 auto;
@@ -18,8 +18,8 @@ h1 {
     font-size: 24px;
     margin-bottom: 20px;
     text-align: center;
-    color: #F10C49;  /* Vibrant red from your image */
-    text-shadow: 2px 2px 4px rgba(241, 12, 73, 0.2);
+    color: #B80C3A;  /* Darker red */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     animation: fadeIn 0.5s ease;
 }
 
@@ -28,7 +28,7 @@ h1 {
     margin-bottom: 15px;
     font-size: 18px;
     font-weight: 500;
-    color: #E3AAD6;  /* Light pink from your image */
+    color: #B38B9E;  /* Darker pink */
     animation: fadeIn 0.5s ease;
 }
 
@@ -50,16 +50,16 @@ label {
     margin-bottom: 6px;
     font-weight: 500;
     font-size: 14px;
-    color: #E3AAD6;  /* Light pink */
+    color: #B38B9E;  /* Darker pink */
 }
 
 select, button {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #F4DD51;  /* Yellow from your image */
+    border: 2px solid #C9B347;  /* Darker gold */
     border-radius: 12px;
-    background: white;
-    color: #333333;
+    background: #2d2d2d;  /* Dark input background */
+    color: #e0e0e0;
     font-size: 16px;
     appearance: none;
     outline: none;
@@ -68,19 +68,19 @@ select, button {
 }
 
 select:hover:not(:disabled) {
-    border-color: #F10C49;  /* Red */
-    box-shadow: 0 0 0 3px rgba(241, 12, 73, 0.1);
+    border-color: #B80C3A;  /* Darker red */
+    background: #3d3d3d;
 }
 
 select:focus {
-    border-color: #F10C49;
-    box-shadow: 0 0 0 3px rgba(241, 12, 73, 0.2);
+    border-color: #B80C3A;
+    box-shadow: 0 0 0 3px rgba(184, 12, 58, 0.3);
 }
 
 select:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
-    border-color: #E3AAD6;
+    border-color: #4d4d4d;
 }
 
 .file-type {
@@ -95,36 +95,36 @@ select:disabled {
     align-items: center;
     gap: 8px;
     font-weight: normal;
-    color: #333333;
+    color: #e0e0e0;
     cursor: pointer;
     transition: transform 0.2s;
 }
 
 .file-type label:hover {
     transform: scale(1.02);
+    color: #C9B347;
 }
 
 .file-type input[type="radio"] {
-    accent-color: #F10C49;  /* Red */
+    accent-color: #B80C3A;
     width: 18px;
     height: 18px;
     cursor: pointer;
 }
 
 button {
-    background: linear-gradient(135deg, #F10C49 0%, #E3AAD6 100%);
+    background: linear-gradient(135deg, #B80C3A 0%, #B38B9E 100%);
     color: white;
     border: none;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
 }
 
 button:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(241, 12, 73, 0.3);
+    box-shadow: 0 4px 12px rgba(184, 12, 58, 0.4);
+    background: linear-gradient(135deg, #C9B347 0%, #B80C3A 100%);
 }
 
 button:active:not(:disabled) {
@@ -132,9 +132,9 @@ button:active:not(:disabled) {
 }
 
 button:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
-    background: #E3AAD6;
+    background: #4d4d4d;
 }
 
 .loader {
@@ -146,23 +146,23 @@ button:disabled {
     gap: 20px;
 }
 
-/* Your custom loader animation */
 .loader-custom {
     width: 48px;
     aspect-ratio: 1;
     border-radius: 50%;
-    background: #E3AAD6;  /* Pink */
+    background: #B38B9E;  /* Darker pink */
     transform-origin: top;
     display: grid;
     animation: l3-0 1.5s infinite cubic-bezier(0.5, 0, 0.5, 1);
     margin: 0 auto;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
 }
 
 .loader-custom::before,
 .loader-custom::after {
     content: "";
     grid-area: 1/1;
-    background: #F4DD51;  /* Yellow */
+    background: #C9B347;  /* Darker gold */
     border-radius: 50%;
     transform-origin: top;
     animation: inherit;
@@ -170,7 +170,7 @@ button:disabled {
 }
 
 .loader-custom::after {
-    background: #F10C49;  /* Red */
+    background: #B80C3A;  /* Darker red */
     --s: 180deg;
 }
 
@@ -186,12 +186,12 @@ button:disabled {
 
 .loading-text {
     font-size: 16px;
-    color: #E3AAD6;
+    color: #B38B9E;
     animation: pulse 1.5s ease-in-out infinite;
 }
 
 .error {
-    color: #F10C49;
+    color: #B80C3A;
     text-align: center;
     padding: 20px;
     animation: shake 0.5s ease;
@@ -200,7 +200,7 @@ button:disabled {
 .note {
     margin-top: 16px;
     font-size: 14px;
-    color: #E3AAD6;
+    color: #B38B9E;
     text-align: center;
     animation: fadeIn 0.5s ease 0.8s both;
 }
@@ -209,18 +209,18 @@ button:disabled {
     margin-top: 30px;
     text-align: center;
     font-size: 14px;
-    color: #E3AAD6;
+    color: #B38B9E;
 }
 
 .footer a {
-    color: #F10C49;
+    color: #C9B347;
     text-decoration: none;
     font-weight: 500;
 }
 
 .footer a:hover {
     text-decoration: underline;
-    color: #F4DD51;
+    color: #B80C3A;
 }
 
 /* Animations */
