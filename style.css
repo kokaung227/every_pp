@@ -223,6 +223,23 @@ button:disabled {
     color: #E36C43;  /* Burnt Sienna */
 }
 
+.footer p {
+    margin: 5px 0;
+}
+.contact-message {
+    font-size: 13px;
+    color: var(--tg-theme-hint-color, #999);
+}
+.contact-message a {
+    color: #06CEF1;  /* your bright turquoise */
+    font-weight: 500;
+    text-decoration: none;
+}
+.contact-message a:hover {
+    text-decoration: underline;
+    color: #E36C43;  /* burnt sienna */
+}
+
 /* Animations */
 @keyframes fadeIn {
     from { opacity: 0; }
