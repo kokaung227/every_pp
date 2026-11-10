@@ -88,6 +88,33 @@
     .telegram-note strong { color:var(--text); }
     .footer { text-align:center;color:var(--muted);font-size:10px;padding:22px 0 5px; }
     .hidden { display:none!important; }
+
+    /* Full-screen welcome state shown while the exam library loads. */
+    .welcome-screen {
+      position:fixed; inset:0; z-index:10000; display:grid; place-items:center;
+      padding:28px; text-align:center; color:var(--text);
+      background:radial-gradient(ellipse at 50% 35%, color-mix(in srgb,var(--accent) 18%,transparent), transparent 52%), var(--bg);
+      opacity:1; visibility:visible; transition:opacity .38s ease, visibility .38s ease;
+    }
+    .welcome-screen.is-hidden { opacity:0; visibility:hidden; pointer-events:none; }
+    .welcome-content { width:min(100%,360px); display:flex; flex-direction:column; align-items:center; }
+    .loader {
+      width:58px; aspect-ratio:1; display:grid; margin:0 auto 27px;
+      animation:l14 4s infinite;
+    }
+    .loader::before, .loader::after {
+      content:""; grid-area:1/1; border:7px solid; border-radius:50%;
+      animation:l14 1s infinite linear;
+    }
+    .loader::before { border-color:#ff526b #ff526b transparent transparent; }
+    .loader::after { border-color:transparent transparent #438dff #438dff; animation-direction:reverse; }
+    @keyframes l14 { 100% { transform:rotate(1turn); } }
+    .welcome-brand { color:var(--accent); font-size:10px; font-weight:900; letter-spacing:2.4px; margin-bottom:11px; }
+    .welcome-title { margin:0; font-size:clamp(26px,7vw,34px); line-height:1.12; letter-spacing:-1px; overflow-wrap:anywhere; }
+    .welcome-title span { color:var(--accent); }
+    .welcome-message { color:var(--muted); font-size:13px; line-height:1.55; margin:11px 0 0; }
+    .welcome-caption { margin-top:25px; color:var(--muted); font-size:10px; letter-spacing:.5px; }
+
     .spinner { display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px; }
     @keyframes spin { to { transform:rotate(360deg); } }
     @media(min-width:540px) { body{padding-left:24px;padding-right:24px}.options{grid-template-columns:repeat(3,minmax(0,1fr))}.step-body{padding-left:60px}.step-head{padding:16px 17px} }
@@ -95,6 +122,16 @@
   </style>
 </head>
 <body>
+<div class="welcome-screen" id="welcome-screen" role="status" aria-live="polite" aria-label="Loading Every PP">
+  <div class="welcome-content">
+    <div class="loader" aria-hidden="true"></div>
+    <div class="welcome-brand">EVERY PP</div>
+    <h2 class="welcome-title">Welcome, <span id="welcome-name">there</span>!</h2>
+    <p class="welcome-message">Getting your exam library ready.<br>Your papers will be ready in a moment.</p>
+    <div class="welcome-caption">PAST PAPERS · EXAM RESOURCES</div>
+  </div>
+</div>
+
 <main class="app">
   <header class="topbar">
     <div class="brand"><div class="logo">E</div><div><h1>Every PP</h1><small>Your exam resource library</small></div></div>
@@ -134,9 +171,23 @@
 </main>
 
 <script>
-  const API_BASE = 'https://exampastpaper.kok775082.workers.dev';
+  // YOUR CLOUDFLARE WORKER URL
+  const API_BASE = 'https://exampastpaper.kok775082.workers.dev'; 
+  
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('secondary_bg_color'); } catch (_) {} }
+
+  // Use Telegram's first name for the greeting. textContent keeps it safe to display.
+  const telegramFirstName = tg?.initDataUnsafe?.user?.first_name;
+  document.getElementById('welcome-name').textContent = telegramFirstName || 'there';
+  const welcomeStartedAt = Date.now();
+  async function hideWelcomeScreen() {
+    // Keep the animation visible briefly so it feels intentional even on fast connections.
+    const minimumDisplayMs = 900;
+    const remaining = Math.max(0, minimumDisplayMs - (Date.now() - welcomeStartedAt));
+    if (remaining) await new Promise(resolve => setTimeout(resolve, remaining));
+    document.getElementById('welcome-screen')?.classList.add('is-hidden');
+  }
 
   const keys = ['exam','board','subject','year','month','paper'];
   const titles = ['Exam type','Exam board','Subject','Year','Session','Paper'];
@@ -266,11 +317,11 @@
   $('type-qp').addEventListener('change',updateDownload);
   $('type-ms').addEventListener('change',updateDownload);
 
-    async function sendSelected() {
+  async function sendSelected() {
     if(sending) return;
     if(!isTelegram){setStatus('Open this app from your Telegram bot before requesting files.','bad');return;}
     
-    // Get the Telegram User ID to act as the chat_id
+    // Get the Telegram User ID
     const chatId = tg.initDataUnsafe?.user?.id;
     if (!chatId) {
       setStatus('Could not read your Telegram ID. Please restart the app.', 'bad');
@@ -292,12 +343,12 @@
       const job=jobs[i];
       setStatus(`Sending ${i+1} of ${jobs.length}: ${job.paper} · ${job.type==='qp'?'Question Paper':'Mark Scheme'}…`);
       try{
-        // ADDED chat_id TO PAYLOAD
+        // Added chat_id to the payload
         const payload={...state, paper:job.paper, file_type:job.type, chat_id: chatId};
         
         const response=await fetch(`${API_BASE}/api/download`,{
           method:'POST',
-          // REMOVED X-Telegram-Init-Data HEADER to bypass CORS error
+          // Removed X-Telegram-Init-Data header
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify(payload)
         });
@@ -328,6 +379,8 @@
     }catch(error){
       $('paper-count').textContent='Library unavailable';
       setStatus(`${error.message} Check the Worker URL and CORS settings.`,'bad');
+    }finally{
+      await hideWelcomeScreen();
     }
   }
   if(!isTelegram) $('telegram-note').classList.remove('hidden');
