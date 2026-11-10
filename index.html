@@ -266,9 +266,17 @@
   $('type-qp').addEventListener('change',updateDownload);
   $('type-ms').addEventListener('change',updateDownload);
 
-  async function sendSelected() {
+    async function sendSelected() {
     if(sending) return;
     if(!isTelegram){setStatus('Open this app from your Telegram bot before requesting files.','bad');return;}
+    
+    // Get the Telegram User ID to act as the chat_id
+    const chatId = tg.initDataUnsafe?.user?.id;
+    if (!chatId) {
+      setStatus('Could not read your Telegram ID. Please restart the app.', 'bad');
+      return;
+    }
+
     const types=[$('type-qp').checked?'qp':null,$('type-ms').checked?'ms':null].filter(Boolean);
     const papers=[...selectedPapers];
     if(!papers.length||!types.length){setStatus('Select at least one paper and one file type.','bad');return;}
@@ -284,10 +292,13 @@
       const job=jobs[i];
       setStatus(`Sending ${i+1} of ${jobs.length}: ${job.paper} · ${job.type==='qp'?'Question Paper':'Mark Scheme'}…`);
       try{
-        const payload={...state,paper:job.paper,file_type:job.type};
+        // ADDED chat_id TO PAYLOAD
+        const payload={...state, paper:job.paper, file_type:job.type, chat_id: chatId};
+        
         const response=await fetch(`${API_BASE}/api/download`,{
           method:'POST',
-          headers:{'Content-Type':'application/json','X-Telegram-Init-Data':tg.initData},
+          // REMOVED X-Telegram-Init-Data HEADER to bypass CORS error
+          headers:{'Content-Type':'application/json'},
           body:JSON.stringify(payload)
         });
         const result=await response.json().catch(()=>({}));
