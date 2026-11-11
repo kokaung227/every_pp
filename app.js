@@ -30,5 +30,60 @@ function updateDock(){const n=selected.size;const types=[$('type-qp').checked?'q
 $('nav-library').addEventListener('click',()=>{mode='library';path=[];render()});$('nav-selected').addEventListener('click',()=>{mode='selected';render()});$('back-btn').addEventListener('click',()=>{if(path.length){path.pop();selected.clear();render()}});$('search').addEventListener('input',render);$('clear-search').addEventListener('click',()=>{$('search').value='';render()});$('type-qp').addEventListener('change',updateDock);$('type-ms').addEventListener('change',updateDock);
 async function sendFiles(){if(sending||!tgReady)return;const types=[$('type-qp').checked?'qp':null,$('type-ms').checked?'ms':null].filter(Boolean);if(!types.length||!selected.size)return;const jobs=[];for(const key of selected){const parts=key.split('|||');const d=parts.slice(0,5).reduce((n,k)=>n?.[k],tree)?.[parts[5]];if(!d)continue;for(const type of types)if((type==='qp'&&d.has_qp)||(type==='ms'&&d.has_ms))jobs.push({parts,type})}if(!jobs.length){setStatus('No files are available for those file types.','bad');return}sending=true;updateDock();let ok=0,errors=[];for(let i=0;i<jobs.length;i++){const {parts,type}=jobs[i];setStatus(`Requesting ${i+1} of ${jobs.length}: ${parts[5]} · ${type.toUpperCase()}…`);try{const [exam,board,subject,year,month,paper]=parts;const res=await fetch(`${API_BASE}/api/download`,{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':tg.initData},body:JSON.stringify({exam,board,subject,year,month,paper,file_type:type})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.success)throw new Error(data.error||`Request failed (${res.status})`);ok++}catch(e){errors.push(`${parts[5]} ${type.toUpperCase()}: ${e.message}`)}}sending=false;updateDock();if(errors.length){setStatus(`${ok}/${jobs.length} requests accepted. ${errors.slice(0,2).join(' · ')}`,'bad')}else{setStatus(`All ${ok} file requests were accepted. Check your Telegram chat.`,'good');try{tg.HapticFeedback?.notificationOccurred('success')}catch(_){}}}
 $('send-button').addEventListener('click',sendFiles);
-async function load(){try{const res=await fetch(`${API_BASE}/api/options`);if(!res.ok)throw new Error(`Library unavailable (${res.status})`);tree=await res.json();$('item-count').textContent=`${folderCount(tree).toLocaleString()} papers`;render();setStatus('Library ready. Open a folder to browse your papers.')}catch(e){$('item-count').textContent='Unavailable';setStatus(`${e.message}. Check your Worker URL and CORS settings.`,'bad')}finally{await hideWelcome()}}
+
+async function load() {
+  try {
+    const url = `${API_BASE}/api/options`;
+
+    console.log('Loading library from:', url);
+
+    const res = await fetch(url, {
+      method: 'GET',
+      cache: 'no-store'
+    });
+
+    const responseText = await res.text();
+
+    console.log('Options status:', res.status);
+    console.log('Options response:', responseText);
+
+    if (!res.ok) {
+      throw new Error(
+        `Worker returned HTTP ${res.status}: ${responseText.slice(0, 300)}`
+      );
+    }
+
+    try {
+      tree = JSON.parse(responseText);
+    } catch {
+      throw new Error(
+        `Worker did not return valid JSON: ${responseText.slice(0, 300)}`
+      );
+    }
+
+    if (!tree || typeof tree !== 'object') {
+      throw new Error('Invalid library data received from Worker.');
+    }
+
+    $('item-count').textContent =
+      `${folderCount(tree).toLocaleString()} papers`;
+
+    render();
+    setStatus('Library ready. Open a folder to browse your papers.');
+
+  } catch (e) {
+    console.error('Library loading error:', e);
+
+    $('item-count').textContent = 'Unavailable';
+
+    setStatus(
+      `${e.message}. Check the browser console for details.`,
+      'bad'
+    );
+
+  } finally {
+    await hideWelcome();
+  }
+}
+
 load();
