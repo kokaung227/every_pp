@@ -69,13 +69,17 @@ $('send-button').addEventListener('click',sendFiles);
 
 async function load() {
   try {
-    const url = `${API_BASE}/api/options`;
+    // 1. Added a random cache-buster to the URL
+    const url = `${API_BASE}/api/options?t=${Date.now()}`;
 
     console.log('Loading library from:', url);
 
     const res = await fetch(url, {
       method: 'GET',
-      cache: 'no-store'
+      headers: {
+        'Accept': 'application/json'
+      }
+      // 2. Removed cache: 'no-store'
     });
 
     const responseText = await res.text();
@@ -109,17 +113,17 @@ async function load() {
 
   } catch (e) {
     console.error('Library loading error:', e);
-
     $('item-count').textContent = 'Unavailable';
-
     setStatus(
       `${e.message}. Check the browser console for details.`,
       'bad'
     );
-
   } finally {
     await hideWelcome();
   }
+}
+
+load();
 }
 
 load();
