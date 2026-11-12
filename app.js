@@ -1,4 +1,4 @@
-const API_BASE='https://exampastpaper.kok775082.workers.dev';
+const API_BASE='https://api.everypastpaper.dpdns.org';
 const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#f4f7fb')}catch(_){}}
 const $=id=>document.getElementById(id);
 const firstName=tg?.initDataUnsafe?.user?.first_name||'there';$('welcome-name').textContent=firstName;$('user-chip').textContent=(firstName[0]||'E').toUpperCase();
