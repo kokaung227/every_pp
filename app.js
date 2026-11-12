@@ -1,9 +1,36 @@
-const API_BASE='https://api.everypastpaper.dpdns.org';
-const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#f4f7fb')}catch(_){}}
-const $=id=>document.getElementById(id);
+const API_BASE = 'https://api.everypastpaper.dpdns.org';
+
+const tg = window.Telegram?.WebApp || null;
+
+try {
+    tg?.ready();
+} catch (error) {
+    console.error('Telegram ready error:', error);
+}
+
+try {
+    tg?.expand();
+    tg?.setHeaderColor('#f4f7fb');
+    tg?.setBackgroundColor('#f4f7fb');
+} catch (error) {
+    console.error('Telegram display error:', error);
+}
+
+const tgInitData = tg?.initData || '';
+const tgReady = tgInitData.length > 0;
+
+// Diagnostic information
+console.log('Every PP diagnostic:', {
+    telegramAvailable: !!tg,
+    platform: tg?.platform || 'Not detected',
+    initDataAvailable: tgReady,
+    apiBase: API_BASE
+});
+
+const $ = id => document.getElementById(id);
 const firstName=tg?.initDataUnsafe?.user?.first_name||'there';$('welcome-name').textContent=firstName;$('user-chip').textContent=(firstName[0]||'E').toUpperCase();
 const started=Date.now();async function hideWelcome(){const wait=Math.max(0,850-(Date.now()-started));if(wait)await new Promise(r=>setTimeout(r,wait));$('welcome-screen').classList.add('is-hidden')}
-const tgReady=Boolean(tg?.initData);let tree=null,path=[],selected=new Set(),sending=false,mode='library';const names=['Exam type','Board','Subject','Year','Session'];
+let tree=null,path=[],selected=new Set(),sending=false,mode='library';const names=['Exam type','Board','Subject','Year','Session'];
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function getNode(){let n=tree;for(const part of path){if(!n||!Object.prototype.hasOwnProperty.call(n,part))return {};n=n[part]}return n||{}}
 function isPaperNode(n){return n&&typeof n==='object'&&('has_qp'in n||'has_ms'in n)}
@@ -12,6 +39,15 @@ function folderCount(n){if(!n||typeof n!=='object')return 0;if(isPaperNode(n))re
 function sortEntries(entries){return entries.sort((a,b)=>{if(path.length===3)return Number(b[0])-Number(a[0]);return a[0].localeCompare(b[0],undefined,{numeric:true,sensitivity:'base'})})}
 function currentTitle(){return path.length?path[path.length-1]:'All papers'}
 function setStatus(msg,kind=''){const el=$('status');el.className='status'+(kind?' '+kind:'');el.textContent=msg}
+window.addEventListener('error', (event) => {
+    console.error('Every PP JavaScript error:', event.error);
+    if ($('status')) setStatus('JS Error: ' + event.message, 'bad');
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Every PP Promise error:', event.reason);
+    if ($('status')) setStatus('App Error: ' + String(event.reason), 'bad');
+});
 function renderCrumbs(){const el=$('breadcrumbs');el.innerHTML='<button class="crumb" data-depth="0">My library</button>'+path.map((part,i)=>`<span class="crumb-sep">›</span><button class="crumb ${i===path.length-1?'current':''}" data-depth="${i+1}">${esc(part)}</button>`).join('');el.querySelectorAll('[data-depth]').forEach(b=>b.addEventListener('click',()=>{path=path.slice(0,Number(b.dataset.depth));selected.clear();mode='library';render()}));$('back-btn').disabled=path.length===0}
 function folderIcon(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H10l2 2h7.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>'}
 function fileIcon(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v6h5M9 14h7M9 17h5"/></svg>'}
