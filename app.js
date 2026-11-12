@@ -67,45 +67,52 @@ $('nav-library').addEventListener('click',()=>{mode='library';path=[];render()})
 async function sendFiles(){if(sending||!tgReady)return;const types=[$('type-qp').checked?'qp':null,$('type-ms').checked?'ms':null].filter(Boolean);if(!types.length||!selected.size)return;const jobs=[];for(const key of selected){const parts=key.split('|||');const d=parts.slice(0,5).reduce((n,k)=>n?.[k],tree)?.[parts[5]];if(!d)continue;for(const type of types)if((type==='qp'&&d.has_qp)||(type==='ms'&&d.has_ms))jobs.push({parts,type})}if(!jobs.length){setStatus('No files are available for those file types.','bad');return}sending=true;updateDock();let ok=0,errors=[];for(let i=0;i<jobs.length;i++){const {parts,type}=jobs[i];setStatus(`Requesting ${i+1} of ${jobs.length}: ${parts[5]} · ${type.toUpperCase()}…`);try{const [exam,board,subject,year,month,paper]=parts;const res=await fetch(`${API_BASE}/api/download`,{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':tg.initData},body:JSON.stringify({exam,board,subject,year,month,paper,file_type:type})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.success)throw new Error(data.error||`Request failed (${res.status})`);ok++}catch(e){errors.push(`${parts[5]} ${type.toUpperCase()}: ${e.message}`)}}sending=false;updateDock();if(errors.length){setStatus(`${ok}/${jobs.length} requests accepted. ${errors.slice(0,2).join(' · ')}`,'bad')}else{setStatus(`All ${ok} file requests were accepted. Check your Telegram chat.`,'good');try{tg.HapticFeedback?.notificationOccurred('success')}catch(_){}}}
 $('send-button').addEventListener('click',sendFiles);
 
+
 async function load() {
-  try {
-    const url = `${API_BASE}/api/options?t=${Date.now()}`;
-    console.log('Loading library from:', url);
-
-    // Use XMLHttpRequest instead of fetch for better Telegram WebView compatibility
-    const res = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', url);
-      xhr.onload = () => resolve(xhr);
-      xhr.onerror = () => reject(new Error('Network request failed. Possible CORS or SSL issue.'));
-      xhr.send();
-    });
-
-    console.log('Options status:', res.status);
-    const responseText = res.responseText;
-    console.log('Options response:', responseText);
-
-    if (res.status < 200 || res.status >= 300) {
-      throw new Error(`Worker returned HTTP ${res.status}`);
-    }
-
     try {
-      tree = JSON.parse(responseText);
-    } catch {
-      throw new Error(`Invalid JSON data received.`);
+        const url = `${API_BASE}/api/options?t=${Date.now()}`;
+        console.log('Loading library from:', url);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+
+        console.log('HTTP status:', response.status);
+        console.log('Response URL:', response.url);
+        console.log('Response headers:', [...response.headers.entries()]);
+
+        const responseText = await response.text();
+        console.log('Response body:', responseText.slice(0, 1000));
+
+        if (!response.ok) {
+            throw new Error(`Worker returned HTTP ${response.status}`);
+        }
+
+        try {
+            tree = JSON.parse(responseText);
+        } catch (error) {
+            throw new Error('Invalid JSON data received.');
+        }
+
+        $('item-count').textContent =
+            `${folderCount(tree).toLocaleString()} papers`;
+
+        render();
+        setStatus('Library ready. Open a folder to browse your papers.');
+
+    } catch (error) {
+        console.error('Library loading error:', error);
+
+        $('item-count').textContent = 'Unavailable';
+        setStatus(
+            `${error.message}. Check browser console for details.`,
+            'bad'
+        );
+
+    } finally {
+        await hideWelcome();
     }
-
-    $('item-count').textContent = `${folderCount(tree).toLocaleString()} papers`;
-    render();
-    setStatus('Library ready. Open a folder to browse your papers.');
-
-  } catch (e) {
-    console.error('Library loading error:', e);
-    $('item-count').textContent = 'Unavailable';
-    setStatus(`${e.message}`, 'bad');
-  } finally {
-    await hideWelcome();
-  }
 }
 
 load();
