@@ -69,58 +69,44 @@ $('send-button').addEventListener('click',sendFiles);
 
 async function load() {
   try {
-    // 1. Added a random cache-buster to the URL
     const url = `${API_BASE}/api/options?t=${Date.now()}`;
-
     console.log('Loading library from:', url);
 
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-      // 2. Removed cache: 'no-store'
+    // Use XMLHttpRequest instead of fetch for better Telegram WebView compatibility
+    const res = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url);
+      xhr.onload = () => resolve(xhr);
+      xhr.onerror = () => reject(new Error('Network request failed. Possible CORS or SSL issue.'));
+      xhr.send();
     });
 
-    const responseText = await res.text();
-
     console.log('Options status:', res.status);
+    const responseText = res.responseText;
     console.log('Options response:', responseText);
 
-    if (!res.ok) {
-      throw new Error(
-        `Worker returned HTTP ${res.status}: ${responseText.slice(0, 300)}`
-      );
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(`Worker returned HTTP ${res.status}`);
     }
 
     try {
       tree = JSON.parse(responseText);
     } catch {
-      throw new Error(
-        `Worker did not return valid JSON: ${responseText.slice(0, 300)}`
-      );
+      throw new Error(`Invalid JSON data received.`);
     }
 
-    if (!tree || typeof tree !== 'object') {
-      throw new Error('Invalid library data received from Worker.');
-    }
-
-    $('item-count').textContent =
-      `${folderCount(tree).toLocaleString()} papers`;
-
+    $('item-count').textContent = `${folderCount(tree).toLocaleString()} papers`;
     render();
     setStatus('Library ready. Open a folder to browse your papers.');
 
   } catch (e) {
     console.error('Library loading error:', e);
     $('item-count').textContent = 'Unavailable';
-    setStatus(
-      `${e.message}. Check the browser console for details.`,
-      'bad'
-    );
+    setStatus(`${e.message}`, 'bad');
   } finally {
     await hideWelcome();
   }
 }
 
 load();
+
