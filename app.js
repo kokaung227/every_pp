@@ -1,4 +1,4 @@
-const API_BASE = 'https://api.everypastpaper.dpdns.org';
+const API_BASE = 'http://exampastpaper.kok775082.workers.dev';
 
 const tg = window.Telegram?.WebApp || null;
 
