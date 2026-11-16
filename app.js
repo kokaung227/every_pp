@@ -2,7 +2,6 @@
 const API_BASE = 'https://exampastpaper.kok775082.workers.dev';
 
 // Keep this in sync with MAX_FILES_PER_BATCH in worker.js.
-// A "file" means one QP or one MS Telegram document.
 const MAX_FILES_PER_BATCH = 10;
 
 const tg = window.Telegram?.WebApp || null;
@@ -55,15 +54,6 @@ function getNode(parts = path) {
 function isWildcardName(name) {
   return String(name ?? '').includes('*');
 }
-function paperCount(node) {
-  if (!node || typeof node !== 'object') return 0;
-  if (isPaper(node)) return 1;
-  return Object.entries(node).reduce((total, [name, child]) => {
-    // Wildcard rows are navigation shortcuts, not actual paper records.
-    if (isWildcardName(name)) return total;
-    return total + paperCount(child);
-  }, 0);
-}
 function setStatus(message, kind = '') {
   const el = $('status');
   el.className = `status${kind ? ` ${kind}` : ''}`;
@@ -83,7 +73,6 @@ function sortEntries(entries, depth = path.length) {
 }
 function allPaperEntries(node = tree, parts = [], output = []) {
   for (const [name, child] of Object.entries(node || {})) {
-    // Never treat a wildcard marker (for example "*" or "2024*") as a real paper.
     if (isWildcardName(name)) continue;
     const next = parts.concat(name);
     if (isPaper(child)) output.push({ parts: next, detail: child });
@@ -95,7 +84,6 @@ function wildcardMatches(value, pattern) {
   const marker = String(pattern ?? '').trim();
   if (!marker.endsWith('*')) return String(value ?? '').toUpperCase() === marker.toUpperCase();
   const exactValue = marker.slice(0, -1).trim().toUpperCase();
-  // A standalone * means every value at this level; NAME* means exact NAME.
   return exactValue === '' || String(value ?? '').trim().toUpperCase() === exactValue;
 }
 
@@ -141,22 +129,21 @@ function fileRow(item, selectedView = false) {
     ${selectedView ? `<button class="row-remove" data-remove="${esc(key)}" aria-label="Remove ${esc(name)}">×</button>` : ''}
   </div>`;
 }
+
+// ✅ MODIFIED: Removed the paper count from folders
 function folderRow(name, child) {
-  const count = paperCount(child);
   return `<button class="folder" data-folder="${esc(name)}">
     <span class="folder-icon">${folderIcon()}</span>
-    <span class="folder-copy"><span class="folder-name">${esc(name)}</span>
-    <span class="folder-meta">${count.toLocaleString()} ${count === 1 ? 'paper' : 'papers'}</span></span>
+    <span class="folder-copy"><span class="folder-name">${esc(name)}</span></span>
     <span class="folder-arrow">›</span>
   </button>`;
 }
+
+// ✅ MODIFIED: Removed the paper count from wildcard buttons
 function wildcardFileRow(name, scopePath) {
-  const matchingQps = getWildcardItems(scopePath, name).filter(item => item.detail.has_qp);
-  const count = matchingQps.length;
-  const countLabel = `${count.toLocaleString()} matching Question Paper${count === 1 ? '' : 's'}`;
   return `<button class="wildcard-file-row" type="button" data-wildcard-name="${esc(name)}" data-wildcard-scope="${esc(JSON.stringify(scopePath))}" ${sending ? 'disabled' : ''}>
     <span class="file-icon wildcard-file-icon">${fileIcon()}</span>
-    <span class="file-copy"><span class="file-name">${esc(name)}</span><span class="file-meta">${countLabel} · sends immediately</span></span>
+    <span class="file-copy"><span class="file-name">${esc(name)}</span><span class="file-meta">Sends matching Question Papers immediately</span></span>
     <span class="wildcard-open">Send QP →</span>
   </button>`;
 }
@@ -283,6 +270,7 @@ function bindRows() {
     render();
   });
 }
+
 function render() {
   if (!tree) return;
   renderBreadcrumbs();
@@ -295,7 +283,7 @@ function render() {
     currentVisible = [...selected.values()];
     $('view-title').textContent = 'Selected files';
     $('view-subtitle').textContent = 'Your selection stays here while you browse different folders.';
-    $('item-count').textContent = `${selected.size} selected`;
+    // ✅ REMOVED: $('item-count').textContent = `${selected.size} selected`;
     $('list-label').textContent = 'Files';
     $('sort-label').textContent = `${selected.size} selected`;
     html = currentVisible.length
@@ -309,7 +297,7 @@ function render() {
     currentVisible = matches;
     $('view-title').textContent = 'Search results';
     $('view-subtitle').textContent = `Matching files across your entire library for “${esc($('search').value.trim())}”.`;
-    $('item-count').textContent = `${matches.length} files`;
+    // ✅ REMOVED: $('item-count').textContent = `${matches.length} files`;
     $('list-label').textContent = 'Files';
     $('sort-label').textContent = 'All folders';
     html = matches.length
@@ -327,7 +315,7 @@ function render() {
     $('view-subtitle').textContent = path.length
       ? `Browsing ${path.join(' / ')}`
       : 'Browse your exam resources like a normal file manager.';
-    $('item-count').textContent = `${paperCount(node).toLocaleString()} papers`;
+    // ✅ REMOVED: $('item-count').textContent = `${paperCount(node).toLocaleString()} papers`;
     $('list-label').textContent = path.length === 5 ? 'Papers' : 'Folders and files';
     $('sort-label').textContent = 'Name';
     html = folders.map(([name, child]) => folderRow(name, child)).join('');
@@ -510,7 +498,7 @@ async function load() {
     setStatus('Library ready. Select files from any folder.');
   } catch (error) {
     console.error('Library loading error:', error);
-    $('item-count').textContent = 'Unavailable';
+    // ✅ REMOVED: $('item-count').textContent = 'Unavailable';
     setStatus(`${error.message}. Check your connection and try again.`, 'bad');
   } finally {
     await hideWelcome();
