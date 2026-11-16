@@ -1,5 +1,5 @@
 // Every PP — file-explorer style browser
-const API_BASE = 'https://api.everypastpaper.dpdns.org';
+const API_BASE = 'https://exampastpaper.kok775082.workers.dev';
 
 // Keep this in sync with MAX_FILES_PER_BATCH in worker.js.
 // A "file" means one QP or one MS Telegram document.
