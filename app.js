@@ -1,5 +1,5 @@
 // Every PP — file-explorer style browser
-const API_BASE = 'https://exampastpaper.kok775082.workers.dev';
+const API_BASE = 'https://api.everypastpaper.dpdns.org';
 
 // Keep this in sync with MAX_FILES_PER_BATCH in worker.js.
 // A "file" means one QP or one MS Telegram document.
@@ -52,10 +52,17 @@ function getNode(parts = path) {
   }
   return node || {};
 }
+function isWildcardName(name) {
+  return String(name ?? '').includes('*');
+}
 function paperCount(node) {
   if (!node || typeof node !== 'object') return 0;
   if (isPaper(node)) return 1;
-  return Object.values(node).reduce((total, child) => total + paperCount(child), 0);
+  return Object.entries(node).reduce((total, [name, child]) => {
+    // Wildcard rows are navigation shortcuts, not actual paper records.
+    if (isWildcardName(name)) return total;
+    return total + paperCount(child);
+  }, 0);
 }
 function setStatus(message, kind = '') {
   const el = $('status');
@@ -76,11 +83,30 @@ function sortEntries(entries, depth = path.length) {
 }
 function allPaperEntries(node = tree, parts = [], output = []) {
   for (const [name, child] of Object.entries(node || {})) {
+    // Never treat a wildcard marker (for example "*" or "2024*") as a real paper.
+    if (isWildcardName(name)) continue;
     const next = parts.concat(name);
     if (isPaper(child)) output.push({ parts: next, detail: child });
     else allPaperEntries(child, next, output);
   }
   return output;
+}
+function wildcardMatches(value, pattern) {
+  const marker = String(pattern ?? '').trim();
+  if (!marker.endsWith('*')) return String(value ?? '').toUpperCase() === marker.toUpperCase();
+  const exactValue = marker.slice(0, -1).trim().toUpperCase();
+  // A standalone * means every value at this level; NAME* means exact NAME.
+  return exactValue === '' || String(value ?? '').trim().toUpperCase() === exactValue;
+}
+
+function getWildcardItems(scope, pattern) {
+  return allPaperEntries().filter(item => {
+    if (item.parts.length <= scope.length) return false;
+    for (let index = 0; index < scope.length; index++) {
+      if (String(item.parts[index]) !== String(scope[index])) return false;
+    }
+    return wildcardMatches(item.parts[scope.length], pattern);
+  });
 }
 function renderBreadcrumbs() {
   const crumbs = [{ label: 'My Drive', depth: 0 }]
@@ -97,6 +123,7 @@ function renderBreadcrumbs() {
   });
   $('back-btn').disabled = path.length === 0 || mode === 'selected';
 }
+
 function availability(detail) {
   return `${detail.has_qp ? '<span class="type-dot">QP</span>' : ''}${detail.has_ms ? '<span class="type-dot ms">MS</span>' : ''}`;
 }
@@ -123,6 +150,80 @@ function folderRow(name, child) {
     <span class="folder-arrow">›</span>
   </button>`;
 }
+function wildcardFileRow(name, scopePath) {
+  const matchingQps = getWildcardItems(scopePath, name).filter(item => item.detail.has_qp);
+  const count = matchingQps.length;
+  const countLabel = `${count.toLocaleString()} matching Question Paper${count === 1 ? '' : 's'}`;
+  return `<button class="wildcard-file-row" type="button" data-wildcard-name="${esc(name)}" data-wildcard-scope="${esc(JSON.stringify(scopePath))}" ${sending ? 'disabled' : ''}>
+    <span class="file-icon wildcard-file-icon">${fileIcon()}</span>
+    <span class="file-copy"><span class="file-name">${esc(name)}</span><span class="file-meta">${countLabel} · sends immediately</span></span>
+    <span class="wildcard-open">Send QP →</span>
+  </button>`;
+}
+
+const PAPER_FIELDS = ['exam', 'board', 'subject', 'year', 'month', 'paper'];
+function makeWildcardCriteria(scopePath, marker) {
+  const index = scopePath.length;
+  if (index >= PAPER_FIELDS.length || !String(marker).endsWith('*')) return null;
+  const criteria = {};
+  scopePath.forEach((value, i) => { criteria[PAPER_FIELDS[i]] = value; });
+  criteria[PAPER_FIELDS[index]] = marker;
+  return criteria;
+}
+
+async function sendWildcardChoice(scopePath, marker, button) {
+  if (sending) return;
+  if (!tgReady) {
+    setStatus('Open this page from your Telegram bot to send files.', 'bad');
+    return;
+  }
+
+  const criteria = makeWildcardCriteria(scopePath, marker);
+  if (!criteria) {
+    setStatus('This wildcard entry is not at a valid exam-library level.', 'bad');
+    return;
+  }
+
+  sending = true;
+  if (button) button.disabled = true;
+  updateDock();
+  const location = [...scopePath, marker].join(' / ');
+  setStatus(`Sending Question Papers for ${location}…`);
+
+  try {
+    const response = await fetch(`${API_BASE}/api/download-wildcard`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': tg.initData
+      },
+      body: JSON.stringify({ criteria })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 413) {
+        showLimitWarning(result.error || `This wildcard exceeds the ${MAX_FILES_PER_BATCH}-file limit. Open a narrower folder.`);
+      }
+      throw new Error(result.error || `Request failed (${response.status})`);
+    }
+
+    const sent = Number(result.sent || 0);
+    const total = Number(result.total || 0);
+    const failures = Array.isArray(result.failures) ? result.failures : [];
+    if (failures.length) {
+      setStatus(`Sent ${sent}/${total} Question Papers. ${failures.length} could not be sent.`, 'bad');
+    } else {
+      setStatus(`Sent ${sent} Question Paper${sent === 1 ? '' : 's'} for ${location}. Check your Telegram chat.`, 'good');
+      try { tg.HapticFeedback?.notificationOccurred('success'); } catch (_) {}
+    }
+  } catch (error) {
+    setStatus(error.message, 'bad');
+  } finally {
+    sending = false;
+    render();
+  }
+}
+
 function bindRows() {
   $('items').querySelectorAll('[data-folder]').forEach(button => {
     button.addEventListener('click', () => {
@@ -138,6 +239,12 @@ function bindRows() {
       mode = 'library';
       $('search').value = '';
       render();
+    });
+  });
+  $('items').querySelectorAll('[data-wildcard-name]').forEach(button => {
+    button.addEventListener('click', () => {
+      const scopePath = JSON.parse(button.dataset.wildcardScope || '[]');
+      sendWildcardChoice(scopePath, button.dataset.wildcardName, button);
     });
   });
   $('items').querySelectorAll('[data-paper-key]').forEach(input => {
@@ -211,18 +318,22 @@ function render() {
   } else {
     const node = getNode();
     const entries = sortEntries(Object.entries(node));
-    const folders = entries.filter(([, child]) => !isPaper(child));
-    const files = entries.filter(([, child]) => isPaper(child))
+    const wildcardEntries = entries.filter(([name]) => isWildcardName(name));
+    const folders = entries.filter(([name, child]) => !isWildcardName(name) && !isPaper(child));
+    const files = entries.filter(([name, child]) => !isWildcardName(name) && isPaper(child))
       .map(([name, detail]) => ({ parts: path.concat(name), detail }));
     currentVisible = files;
     $('view-title').textContent = path.length ? path[path.length - 1] : 'My Drive';
     $('view-subtitle').textContent = path.length
       ? `Browsing ${path.join(' / ')}`
-      : 'Browse your exam library like a normal file manager.';
+      : 'Browse your exam resources like a normal file manager.';
     $('item-count').textContent = `${paperCount(node).toLocaleString()} papers`;
     $('list-label').textContent = path.length === 5 ? 'Papers' : 'Folders and files';
     $('sort-label').textContent = 'Name';
     html = folders.map(([name, child]) => folderRow(name, child)).join('');
+    if (wildcardEntries.length) {
+      html += wildcardEntries.map(([name]) => wildcardFileRow(name, path)).join('');
+    }
     if (files.length) html += `<div class="file-list">${files.map(item => fileRow(item)).join('')}</div>`;
     if (!html) html = '<div class="empty"><strong>This folder is empty</strong>Go back to view another folder.</div>';
   }
@@ -233,12 +344,13 @@ function render() {
     currentVisible.every(item => selected.has(pathKey(item.parts)));
   bindRows();
   $('nav-selected-count').textContent = selected.size;
-  $('nav-library').classList.toggle('active', mode === 'library');
+  $('nav-library').classList.toggle('active', mode !== 'selected');
   $('nav-selected').classList.toggle('active', mode === 'selected');
-  $('nav-library').setAttribute('aria-current', mode === 'library' ? 'page' : 'false');
+  $('nav-library').setAttribute('aria-current', mode !== 'selected' ? 'page' : 'false');
   $('nav-selected').setAttribute('aria-current', mode === 'selected' ? 'page' : 'false');
   updateDock();
 }
+
 function updateDock() {
   const paperCountSelected = selected.size;
   const fileCount = getJobs().length;
@@ -251,13 +363,13 @@ function updateDock() {
   $('send-button').textContent = sending ? 'Sending…' : `Send ${fileCount || ''} file${fileCount === 1 ? '' : 's'}`.trim();
   $('telegram-note').classList.toggle('hidden', tgReady);
 }
-function getJobs() {
+function getJobsForItems(items) {
   const types = [
     $('type-qp').checked ? 'qp' : null,
     $('type-ms').checked ? 'ms' : null
   ].filter(Boolean);
   const jobs = [];
-  for (const item of selected.values()) {
+  for (const item of items) {
     for (const type of types) {
       if ((type === 'qp' && item.detail.has_qp) || (type === 'ms' && item.detail.has_ms)) {
         const [exam, board, subject, year, month, paper] = item.parts;
@@ -266,6 +378,9 @@ function getJobs() {
     }
   }
   return jobs;
+}
+function getJobs() {
+  return getJobsForItems([...selected.values()]);
 }
 
 function getFileCountForItem(item) {
@@ -327,21 +442,20 @@ function handleTypeOptionChange(event) {
   limitWarningText = '';
   updateDock();
 }
-async function sendFiles() {
+async function sendJobs(jobs, description) {
   if (sending || !tgReady) return;
-  const jobs = getJobs();
   if (!jobs.length) {
     setStatus('No available files match the selected file types.', 'bad');
     return;
   }
   if (jobs.length > MAX_FILES_PER_BATCH) {
-    showLimitWarning(`You selected ${jobs.length} files. The maximum is ${MAX_FILES_PER_BATCH}. Remove some files before sending.`);
+    showLimitWarning(`This selection contains ${jobs.length} files. The maximum is ${MAX_FILES_PER_BATCH}. Open a more specific folder or choose fewer file types.`);
     return;
   }
 
   sending = true;
   updateDock();
-  setStatus(`Sending ${jobs.length} file${jobs.length === 1 ? '' : 's'}…`);
+  setStatus(`Sending ${jobs.length} file${jobs.length === 1 ? '' : 's'} from ${description}…`);
   try {
     const response = await fetch(`${API_BASE}/api/download-batch`, {
       method: 'POST',
@@ -352,7 +466,12 @@ async function sendFiles() {
       body: JSON.stringify({ files: jobs })
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`);
+    if (!response.ok) {
+      if (response.status === 413) {
+        showLimitWarning(result.error || `The maximum is ${MAX_FILES_PER_BATCH} files. Open a more specific folder.`);
+      }
+      throw new Error(result.error || `Request failed (${response.status})`);
+    }
     const sent = Number(result.sent || 0);
     const failures = result.failures || [];
     if (failures.length) {
@@ -368,13 +487,16 @@ async function sendFiles() {
     updateDock();
   }
 }
-$('nav-library').addEventListener('click', () => { mode = 'library'; path = []; render(); });
+async function sendFiles() {
+  await sendJobs(getJobs(), 'your selected papers');
+}
+$('nav-library').addEventListener('click', () => { mode = 'library'; path = []; $('search').value = ''; render(); });
 $('nav-selected').addEventListener('click', () => { mode = 'selected'; render(); });
 $('back-btn').addEventListener('click', () => {
   if (path.length && mode === 'library') { path.pop(); render(); }
 });
 $('search').addEventListener('input', () => { mode = 'library'; render(); });
-$('clear-search').addEventListener('click', () => { $('search').value = ''; render(); });
+$('clear-search').addEventListener('click', () => { $('search').value = ''; mode = 'library'; render(); });
 $('type-qp').addEventListener('change', handleTypeOptionChange);
 $('type-ms').addEventListener('change', handleTypeOptionChange);
 $('send-button').addEventListener('click', sendFiles);
