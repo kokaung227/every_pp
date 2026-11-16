@@ -13,3 +13,26 @@
 .select-visible-wrap{display:flex;align-items:center;gap:6px;color:#758397;font-size:10px;font-weight:550;letter-spacing:0;text-transform:none}.select-visible-wrap input{accent-color:#2673ca}
 
 .limit-warning{margin:13px 0 0;padding:11px 13px;border:1px solid #f0cf86;border-radius:8px;background:#fff7e5;color:#865d12;font-size:12px;font-weight:650;line-height:1.45}.limit-warning.hidden{display:none!important}
+
+
+/* Wildcard stop-and-send action */
+.wildcard-action{width:100%;display:flex;align-items:center;gap:12px;margin:0 0 12px;padding:13px 15px;border:1px solid #b8d0ef;border-radius:10px;background:#f1f7ff;text-align:left;color:#23466f;transition:background .15s,border-color .15s,transform .15s}
+.wildcard-action:hover{background:#e8f2ff;border-color:#82addf;transform:translateY(-1px)}
+.wildcard-action:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.wildcard-star{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:9px;background:#dcecff;color:#1d67b5;font-size:25px;font-weight:800;line-height:1}
+.wildcard-copy{min-width:0;display:flex;flex:1;flex-direction:column;gap:4px}
+.wildcard-title{font-size:12px;font-weight:750;color:#23466f}
+.wildcard-meta{font-size:10px;color:#67809e}
+.wildcard-arrow{font-size:11px;font-weight:750;color:#236fc3;white-space:nowrap}
+@media(max-width:520px){.wildcard-action{padding:11px 10px;gap:9px}.wildcard-title{font-size:11px}.wildcard-arrow{font-size:10px}}
+
+
+/* Wildcard is displayed as a normal file entry, not a download CTA. */
+.wildcard-file-row{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;padding:9px 13px;margin:7px 0;border:1px solid #e4eaf1;border-radius:9px;background:#fff;text-align:left;transition:background .15s,border-color .15s}
+.wildcard-file-row:hover{background:#f3f8ff;border-color:#b8d0ef}
+.wildcard-file-icon{background:#edf4ff;color:#246fce;position:relative}
+.wildcard-file-icon::after{content:'*';position:absolute;right:-3px;top:-5px;width:14px;height:14px;display:grid;place-items:center;border-radius:50%;background:#246fce;color:#fff;font-size:11px;font-weight:800;line-height:1}
+.wildcard-open{margin-left:auto;color:#2672c8;font-size:11px;font-weight:700;white-space:nowrap}
+
+.wildcard-file-row:disabled{opacity:.55;cursor:wait}
+.wildcard-open{margin-left:auto;color:#2672c8;font-size:11px;font-weight:750;white-space:nowrap}
