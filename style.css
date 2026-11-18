@@ -180,3 +180,20 @@ button { cursor: pointer; }
     .wildcard-title { font-size: 11px; }
     .wildcard-arrow { font-size: 10px; }
 }
+/* Make the QP/MS badges clickable */
+button.type-dot { 
+    border: 0; 
+    font-family: inherit; 
+    cursor: pointer; 
+    transition: background 0.2s, transform 0.1s; 
+}
+button.type-dot:hover { 
+    background: rgba(0, 210, 255, 0.3); 
+    transform: scale(1.05); 
+}
+button.type-dot.ms:hover { 
+    background: rgba(255, 0, 85, 0.3); 
+}
+button.type-dot:active { 
+    transform: scale(0.95); 
+}
