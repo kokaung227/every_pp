@@ -27,7 +27,7 @@ async function hideWelcome() {
 
 let tree = null;
 let path = [];
-let selected = new Map(); 
+let selected = new Map(); // key -> { parts, detail, types: { qp: bool, ms: bool } }
 let mode = 'library';
 let sending = false;
 let currentVisible = [];
@@ -109,24 +109,25 @@ function renderBreadcrumbs() {
   $('back-btn').disabled = path.length === 0 || mode === 'selected';
 }
 
-// ✅ UPDATED: QP/MS are now clickable buttons
 function fileRow(item, selectedView = false) {
   const { parts, detail } = item;
   const key = pathKey(parts);
   const name = parts[parts.length - 1];
-  const checked = selected.has(key);
   const location = parts.slice(0, -1).join(' / ');
+  
+  const isSelected = selected.has(key);
+  const selectedTypes = selected.get(key)?.types || {};
   
   let badges = '';
   if (detail.has_qp) {
-    badges += `<button class="type-dot" data-action="qp" data-parts="${esc(JSON.stringify(parts))}">QP</button>`;
+    badges += `<button class="type-dot ${selectedTypes.qp ? 'active' : ''}" data-action="qp" data-parts="${esc(JSON.stringify(parts))}">QP</button>`;
   }
   if (detail.has_ms) {
-    badges += `<button class="type-dot ms" data-action="ms" data-parts="${esc(JSON.stringify(parts))}">MS</button>`;
+    badges += `<button class="type-dot ms ${selectedTypes.ms ? 'active' : ''}" data-action="ms" data-parts="${esc(JSON.stringify(parts))}">MS</button>`;
   }
 
-  return `<div class="file-row ${checked ? 'selected' : ''}">
-    <input class="file-check" type="checkbox" data-paper-key="${esc(key)}" ${checked ? 'checked' : ''} aria-label="Select ${esc(name)}">
+  return `<div class="file-row ${isSelected ? 'selected' : ''}">
+    <input class="file-check" type="checkbox" data-paper-key="${esc(key)}" ${isSelected ? 'checked' : ''} aria-label="Select ${esc(name)}">
     <span class="file-icon">${fileIcon()}</span>
     <span class="file-copy"><span class="file-name">${esc(name)}</span><span class="file-meta">${esc(location)}</span></span>
     <span class="availability">${badges}</span>
@@ -210,39 +211,41 @@ async function sendWildcardChoice(scopePath, marker, button) {
   }
 }
 
-// ✅ NEW: Function to instantly send a single file when a badge is clicked
-async function sendSingleFile(parts, type, button) {
-  if (sending) return;
-  if (!tgReady) { setStatus('Open from Telegram to send files.', 'bad'); return; }
+function toggleBadge(parts, type) {
+  const key = pathKey(parts);
+  const item = allPaperEntries().find(entry => pathKey(entry.parts) === key);
+  if (!item) return;
+
+  let existing = selected.get(key);
   
-  sending = true;
-  updateDock();
-  const originalText = button.textContent;
-  button.textContent = '...';
-  button.disabled = true;
-
-  const [exam, board, subject, year, month, paper] = parts;
-  const payload = { exam, board, subject, year, month, paper, file_type: type };
-
-  try {
-    const res = await fetch(`${API_BASE}/api/download`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData },
-      body: JSON.stringify(payload)
+  if (existing) {
+    if (existing.types[type]) {
+      existing.types[type] = false;
+      if (!existing.types.qp && !existing.types.ms) {
+        selected.delete(key);
+      }
+    } else {
+      const currentCount = getJobs().length;
+      if (currentCount + 1 > MAX_FILES_PER_BATCH) {
+        showLimitWarning(`Limit reached. Max is ${MAX_FILES_PER_BATCH}.`);
+        return;
+      }
+      existing.types[type] = true;
+    }
+  } else {
+    const currentCount = getJobs().length;
+    if (currentCount + 1 > MAX_FILES_PER_BATCH) {
+      showLimitWarning(`Limit reached. Max is ${MAX_FILES_PER_BATCH}.`);
+      return;
+    }
+    selected.set(key, {
+      parts: item.parts,
+      detail: item.detail,
+      types: { qp: type === 'qp', ms: type === 'ms' }
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Request failed');
-    
-    setStatus(`✅ Sent ${type.toUpperCase()} for ${paper}!`, 'good');
-    try { tg.HapticFeedback?.notificationOccurred('success'); } catch (_) {}
-  } catch (e) {
-    setStatus(e.message, 'bad');
-    try { tg.HapticFeedback?.notificationOccurred('error'); } catch (_) {}
-  } finally {
-    sending = false;
-    // render() will reset the button back to normal
-    render(); 
   }
+  limitWarningText = '';
+  render();
 }
 
 function bindRows() {
@@ -269,12 +272,12 @@ function bindRows() {
     });
   });
   
-  // ✅ NEW: Bind the QP/MS badges to the sendSingleFile function
+  // Bind the QP/MS badges
   $('items').querySelectorAll('[data-action]').forEach(button => {
     button.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent the row checkbox from toggling
+      e.stopPropagation(); 
       const parts = JSON.parse(button.dataset.parts);
-      sendSingleFile(parts, button.dataset.action, button);
+      toggleBadge(parts, button.dataset.action);
     });
   });
 
@@ -283,10 +286,19 @@ function bindRows() {
       const key = input.dataset.paperKey;
       if (input.checked) {
         const item = allPaperEntries().find(entry => pathKey(entry.parts) === key);
-        if (item && !trySelectPaper(item)) {
-          input.checked = false;
-          updateLimitWarning();
-          return;
+        if (item) {
+          const needed = (item.detail.has_qp ? 1 : 0) + (item.detail.has_ms ? 1 : 0);
+          const currentCount = getJobs().length;
+          if (currentCount + needed > MAX_FILES_PER_BATCH) {
+            input.checked = false;
+            showLimitWarning(`Cannot select. Limit is ${MAX_FILES_PER_BATCH} files.`);
+            return;
+          }
+          selected.set(key, {
+            parts: item.parts,
+            detail: item.detail,
+            types: { qp: item.detail.has_qp, ms: item.detail.has_ms }
+          });
         }
       } else {
         selected.delete(key);
@@ -380,13 +392,12 @@ function render() {
   updateDock();
 }
 
-// ✅ UPDATED: Since we no longer have global type checkboxes, "Send files" sends BOTH QP and MS for selected items
 function getJobs() {
   const jobs = [];
   for (const item of selected.values()) {
     const [exam, board, subject, year, month, paper] = item.parts;
-    if (item.detail.has_qp) jobs.push({ exam, board, subject, year, month, paper, file_type: 'qp' });
-    if (item.detail.has_ms) jobs.push({ exam, board, subject, year, month, paper, file_type: 'ms' });
+    if (item.types.qp) jobs.push({ exam, board, subject, year, month, paper, file_type: 'qp' });
+    if (item.types.ms) jobs.push({ exam, board, subject, year, month, paper, file_type: 'ms' });
   }
   return jobs;
 }
@@ -397,20 +408,13 @@ function updateDock() {
   
   $('dock-title').textContent = `${paperCountSelected} paper${paperCountSelected === 1 ? '' : 's'} selected`;
   $('dock-caption').textContent = paperCountSelected
-    ? `${fileCount} file${fileCount === 1 ? '' : 's'} will be sent (QP + MS)`
-    : `Select papers to send them all at once.`;
+    ? `${fileCount} file${fileCount === 1 ? '' : 's'} selected to send`
+    : `Select up to ${MAX_FILES_PER_BATCH} files from any folders.`;
     
   $('send-button').disabled = !tgReady || sending || !fileCount;
   updateLimitWarning();
   $('send-button').textContent = sending ? 'Sending…' : `Send ${fileCount || ''} file${fileCount === 1 ? '' : 's'}`.trim();
   $('telegram-note').classList.toggle('hidden', tgReady);
-}
-
-function getFileCountForItem(item) {
-  let count = 0;
-  if (item.detail.has_qp) count++;
-  if (item.detail.has_ms) count++;
-  return count;
 }
 
 function showLimitWarning(message) {
@@ -438,18 +442,18 @@ function updateLimitWarning() {
 function trySelectPaper(item) {
   const key = pathKey(item.parts);
   if (selected.has(key)) return true;
-  const additional = getFileCountForItem(item);
+  const needed = (item.detail.has_qp ? 1 : 0) + (item.detail.has_ms ? 1 : 0);
+  if (needed === 0) return true;
   const currentCount = getJobs().length;
-  if (currentCount + additional > MAX_FILES_PER_BATCH) {
-    const remaining = Math.max(0, MAX_FILES_PER_BATCH - currentCount);
-    showLimitWarning(remaining === 0
-      ? `You've reached the ${MAX_FILES_PER_BATCH}-file limit. Remove a selected file before adding another.`
-      : `This paper needs ${additional} files, but only ${remaining} slot${remaining === 1 ? '' : 's'} left. The maximum is ${MAX_FILES_PER_BATCH} files.`);
-    try { tg?.HapticFeedback?.notificationOccurred('warning'); } catch (_) {}
+  if (currentCount + needed > MAX_FILES_PER_BATCH) {
+    showLimitWarning(`Cannot select all. Limit is ${MAX_FILES_PER_BATCH} files.`);
     return false;
   }
-  selected.set(key, item);
-  limitWarningText = '';
+  selected.set(key, {
+    parts: item.parts,
+    detail: item.detail,
+    types: { qp: item.detail.has_qp, ms: item.detail.has_ms }
+  });
   return true;
 }
 
