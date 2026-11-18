@@ -99,7 +99,40 @@ button { cursor: pointer; }
 
 /* Badges */
 .availability { display: flex; gap: 5px; flex: none; }
-.type-dot { font-size: 9px; font-weight: 800; letter-spacing: .04em; color: #00d2ff; background: rgba(0, 210, 255, 0.15); border-radius: 4px; padding: 4px 6px; }
+/* Make the QP/MS badges clickable and show active state */
+.type-dot { 
+    font-size: 9px; 
+    font-weight: 800; 
+    letter-spacing: .04em; 
+    color: #00d2ff; 
+    background: rgba(0, 210, 255, 0.15); 
+    border-radius: 4px; 
+    padding: 4px 6px; 
+    border: 1px solid transparent; 
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+}
+.type-dot:hover {
+    background: rgba(0, 210, 255, 0.3);
+}
+.type-dot.active { 
+    background: #00d2ff; 
+    color: #000; 
+    border-color: #00d2ff; 
+}
+
+.type-dot.ms { 
+    color: #ff0055; 
+    background: rgba(255, 0, 85, 0.15); 
+}
+.type-dot.ms:hover {
+    background: rgba(255, 0, 85, 0.3);
+}
+.type-dot.ms.active { 
+    background: #ff0055; 
+    color: #fff; 
+    border-color: #ff0055; 
+}
 .type-dot.ms { color: #ff0055; background: rgba(255, 0, 85, 0.15); }
 .row-remove { border: 0; background: transparent; color: #9ca3af; font-size: 19px; padding: 3px 7px; transition: 0.2s; }
 .row-remove:hover { color: #ff4444; }
