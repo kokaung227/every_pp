@@ -1,15 +1,13 @@
 // Every PP — file-explorer style browser
 const API_BASE = 'https://exampastpaper.kok775082.workers.dev';
-
-// Keep this in sync with MAX_FILES_PER_BATCH in worker.js.
 const MAX_FILES_PER_BATCH = 10;
 
 const tg = window.Telegram?.WebApp || null;
 try {
   tg?.ready();
   tg?.expand();
-  tg?.setHeaderColor('#f4f7fb');
-  tg?.setBackgroundColor('#f4f7fb');
+  tg?.setHeaderColor('#121212');
+  tg?.setBackgroundColor('#121212');
 } catch (error) {
   console.warn('Telegram WebApp setup:', error);
 }
@@ -29,12 +27,11 @@ async function hideWelcome() {
 
 let tree = null;
 let path = [];
-let selected = new Map(); // JSON path -> { parts, detail }
+let selected = new Map(); 
 let mode = 'library';
 let sending = false;
 let currentVisible = [];
 let limitWarningText = '';
-let previousTypeOptions = { qp: $('type-qp').checked, ms: $('type-ms').checked };
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -112,25 +109,31 @@ function renderBreadcrumbs() {
   $('back-btn').disabled = path.length === 0 || mode === 'selected';
 }
 
-function availability(detail) {
-  return `${detail.has_qp ? '<span class="type-dot">QP</span>' : ''}${detail.has_ms ? '<span class="type-dot ms">MS</span>' : ''}`;
-}
+// ✅ UPDATED: QP/MS are now clickable buttons
 function fileRow(item, selectedView = false) {
   const { parts, detail } = item;
   const key = pathKey(parts);
   const name = parts[parts.length - 1];
   const checked = selected.has(key);
   const location = parts.slice(0, -1).join(' / ');
+  
+  let badges = '';
+  if (detail.has_qp) {
+    badges += `<button class="type-dot" data-action="qp" data-parts="${esc(JSON.stringify(parts))}">QP</button>`;
+  }
+  if (detail.has_ms) {
+    badges += `<button class="type-dot ms" data-action="ms" data-parts="${esc(JSON.stringify(parts))}">MS</button>`;
+  }
+
   return `<div class="file-row ${checked ? 'selected' : ''}">
     <input class="file-check" type="checkbox" data-paper-key="${esc(key)}" ${checked ? 'checked' : ''} aria-label="Select ${esc(name)}">
     <span class="file-icon">${fileIcon()}</span>
     <span class="file-copy"><span class="file-name">${esc(name)}</span><span class="file-meta">${esc(location)}</span></span>
-    <span class="availability">${availability(detail)}</span>
+    <span class="availability">${badges}</span>
     ${selectedView ? `<button class="row-remove" data-remove="${esc(key)}" aria-label="Remove ${esc(name)}">×</button>` : ''}
   </div>`;
 }
 
-// ✅ MODIFIED: Removed the paper count from folders
 function folderRow(name, child) {
   return `<button class="folder" data-folder="${esc(name)}">
     <span class="folder-icon">${folderIcon()}</span>
@@ -139,7 +142,6 @@ function folderRow(name, child) {
   </button>`;
 }
 
-// ✅ MODIFIED: Removed the paper count from wildcard buttons
 function wildcardFileRow(name, scopePath) {
   return `<button class="wildcard-file-row" type="button" data-wildcard-name="${esc(name)}" data-wildcard-scope="${esc(JSON.stringify(scopePath))}" ${sending ? 'disabled' : ''}>
     <span class="file-icon wildcard-file-icon">${fileIcon()}</span>
@@ -180,16 +182,13 @@ async function sendWildcardChoice(scopePath, marker, button) {
   try {
     const response = await fetch(`${API_BASE}/api/download-wildcard`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Telegram-Init-Data': tg.initData
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData },
       body: JSON.stringify({ criteria })
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
       if (response.status === 413) {
-        showLimitWarning(result.error || `This wildcard exceeds the ${MAX_FILES_PER_BATCH}-file limit. Open a narrower folder.`);
+        showLimitWarning(result.error || `This wildcard exceeds the ${MAX_FILES_PER_BATCH}-file limit.`);
       }
       throw new Error(result.error || `Request failed (${response.status})`);
     }
@@ -200,7 +199,7 @@ async function sendWildcardChoice(scopePath, marker, button) {
     if (failures.length) {
       setStatus(`Sent ${sent}/${total} Question Papers. ${failures.length} could not be sent.`, 'bad');
     } else {
-      setStatus(`Sent ${sent} Question Paper${sent === 1 ? '' : 's'} for ${location}. Check your Telegram chat.`, 'good');
+      setStatus(`Sent ${sent} Question Paper${sent === 1 ? '' : 's'} for ${location}.`, 'good');
       try { tg.HapticFeedback?.notificationOccurred('success'); } catch (_) {}
     }
   } catch (error) {
@@ -208,6 +207,41 @@ async function sendWildcardChoice(scopePath, marker, button) {
   } finally {
     sending = false;
     render();
+  }
+}
+
+// ✅ NEW: Function to instantly send a single file when a badge is clicked
+async function sendSingleFile(parts, type, button) {
+  if (sending) return;
+  if (!tgReady) { setStatus('Open from Telegram to send files.', 'bad'); return; }
+  
+  sending = true;
+  updateDock();
+  const originalText = button.textContent;
+  button.textContent = '...';
+  button.disabled = true;
+
+  const [exam, board, subject, year, month, paper] = parts;
+  const payload = { exam, board, subject, year, month, paper, file_type: type };
+
+  try {
+    const res = await fetch(`${API_BASE}/api/download`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    
+    setStatus(`✅ Sent ${type.toUpperCase()} for ${paper}!`, 'good');
+    try { tg.HapticFeedback?.notificationOccurred('success'); } catch (_) {}
+  } catch (e) {
+    setStatus(e.message, 'bad');
+    try { tg.HapticFeedback?.notificationOccurred('error'); } catch (_) {}
+  } finally {
+    sending = false;
+    // render() will reset the button back to normal
+    render(); 
   }
 }
 
@@ -234,6 +268,16 @@ function bindRows() {
       sendWildcardChoice(scopePath, button.dataset.wildcardName, button);
     });
   });
+  
+  // ✅ NEW: Bind the QP/MS badges to the sendSingleFile function
+  $('items').querySelectorAll('[data-action]').forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent the row checkbox from toggling
+      const parts = JSON.parse(button.dataset.parts);
+      sendSingleFile(parts, button.dataset.action, button);
+    });
+  });
+
   $('items').querySelectorAll('[data-paper-key]').forEach(input => {
     input.addEventListener('change', () => {
       const key = input.dataset.paperKey;
@@ -283,7 +327,6 @@ function render() {
     currentVisible = [...selected.values()];
     $('view-title').textContent = 'Selected files';
     $('view-subtitle').textContent = 'Your selection stays here while you browse different folders.';
-    // ✅ REMOVED: $('item-count').textContent = `${selected.size} selected`;
     $('list-label').textContent = 'Files';
     $('sort-label').textContent = `${selected.size} selected`;
     html = currentVisible.length
@@ -297,7 +340,6 @@ function render() {
     currentVisible = matches;
     $('view-title').textContent = 'Search results';
     $('view-subtitle').textContent = `Matching files across your entire library for “${esc($('search').value.trim())}”.`;
-    // ✅ REMOVED: $('item-count').textContent = `${matches.length} files`;
     $('list-label').textContent = 'Files';
     $('sort-label').textContent = 'All folders';
     html = matches.length
@@ -315,7 +357,6 @@ function render() {
     $('view-subtitle').textContent = path.length
       ? `Browsing ${path.join(' / ')}`
       : 'Browse your exam resources like a normal file manager.';
-    // ✅ REMOVED: $('item-count').textContent = `${paperCount(node).toLocaleString()} papers`;
     $('list-label').textContent = path.length === 5 ? 'Papers' : 'Folders and files';
     $('sort-label').textContent = 'Name';
     html = folders.map(([name, child]) => folderRow(name, child)).join('');
@@ -339,42 +380,36 @@ function render() {
   updateDock();
 }
 
+// ✅ UPDATED: Since we no longer have global type checkboxes, "Send files" sends BOTH QP and MS for selected items
+function getJobs() {
+  const jobs = [];
+  for (const item of selected.values()) {
+    const [exam, board, subject, year, month, paper] = item.parts;
+    if (item.detail.has_qp) jobs.push({ exam, board, subject, year, month, paper, file_type: 'qp' });
+    if (item.detail.has_ms) jobs.push({ exam, board, subject, year, month, paper, file_type: 'ms' });
+  }
+  return jobs;
+}
+
 function updateDock() {
   const paperCountSelected = selected.size;
   const fileCount = getJobs().length;
+  
   $('dock-title').textContent = `${paperCountSelected} paper${paperCountSelected === 1 ? '' : 's'} selected`;
   $('dock-caption').textContent = paperCountSelected
-    ? `${fileCount} of ${MAX_FILES_PER_BATCH} allowed files selected`
-    : `Select up to ${MAX_FILES_PER_BATCH} files from any folders.`;
-  $('send-button').disabled = !tgReady || sending || !fileCount || fileCount > MAX_FILES_PER_BATCH;
+    ? `${fileCount} file${fileCount === 1 ? '' : 's'} will be sent (QP + MS)`
+    : `Select papers to send them all at once.`;
+    
+  $('send-button').disabled = !tgReady || sending || !fileCount;
   updateLimitWarning();
   $('send-button').textContent = sending ? 'Sending…' : `Send ${fileCount || ''} file${fileCount === 1 ? '' : 's'}`.trim();
   $('telegram-note').classList.toggle('hidden', tgReady);
 }
-function getJobsForItems(items) {
-  const types = [
-    $('type-qp').checked ? 'qp' : null,
-    $('type-ms').checked ? 'ms' : null
-  ].filter(Boolean);
-  const jobs = [];
-  for (const item of items) {
-    for (const type of types) {
-      if ((type === 'qp' && item.detail.has_qp) || (type === 'ms' && item.detail.has_ms)) {
-        const [exam, board, subject, year, month, paper] = item.parts;
-        jobs.push({ exam, board, subject, year, month, paper, file_type: type });
-      }
-    }
-  }
-  return jobs;
-}
-function getJobs() {
-  return getJobsForItems([...selected.values()]);
-}
 
 function getFileCountForItem(item) {
   let count = 0;
-  if ($('type-qp').checked && item.detail.has_qp) count++;
-  if ($('type-ms').checked && item.detail.has_ms) count++;
+  if (item.detail.has_qp) count++;
+  if (item.detail.has_ms) count++;
   return count;
 }
 
@@ -418,18 +453,6 @@ function trySelectPaper(item) {
   return true;
 }
 
-function handleTypeOptionChange(event) {
-  const currentCount = getJobs().length;
-  if (currentCount > MAX_FILES_PER_BATCH) {
-    $('type-qp').checked = previousTypeOptions.qp;
-    $('type-ms').checked = previousTypeOptions.ms;
-    showLimitWarning(`Changing these options would exceed the ${MAX_FILES_PER_BATCH}-file limit. Remove some selections first.`);
-    return;
-  }
-  previousTypeOptions = { qp: $('type-qp').checked, ms: $('type-ms').checked };
-  limitWarningText = '';
-  updateDock();
-}
 async function sendJobs(jobs, description) {
   if (sending || !tgReady) return;
   if (!jobs.length) {
@@ -437,7 +460,7 @@ async function sendJobs(jobs, description) {
     return;
   }
   if (jobs.length > MAX_FILES_PER_BATCH) {
-    showLimitWarning(`This selection contains ${jobs.length} files. The maximum is ${MAX_FILES_PER_BATCH}. Open a more specific folder or choose fewer file types.`);
+    showLimitWarning(`This selection contains ${jobs.length} files. The maximum is ${MAX_FILES_PER_BATCH}. Open a more specific folder.`);
     return;
   }
 
@@ -447,10 +470,7 @@ async function sendJobs(jobs, description) {
   try {
     const response = await fetch(`${API_BASE}/api/download-batch`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Telegram-Init-Data': tg.initData
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData },
       body: JSON.stringify({ files: jobs })
     });
     const result = await response.json().catch(() => ({}));
@@ -475,9 +495,11 @@ async function sendJobs(jobs, description) {
     updateDock();
   }
 }
+
 async function sendFiles() {
   await sendJobs(getJobs(), 'your selected papers');
 }
+
 $('nav-library').addEventListener('click', () => { mode = 'library'; path = []; $('search').value = ''; render(); });
 $('nav-selected').addEventListener('click', () => { mode = 'selected'; render(); });
 $('back-btn').addEventListener('click', () => {
@@ -485,8 +507,6 @@ $('back-btn').addEventListener('click', () => {
 });
 $('search').addEventListener('input', () => { mode = 'library'; render(); });
 $('clear-search').addEventListener('click', () => { $('search').value = ''; mode = 'library'; render(); });
-$('type-qp').addEventListener('change', handleTypeOptionChange);
-$('type-ms').addEventListener('change', handleTypeOptionChange);
 $('send-button').addEventListener('click', sendFiles);
 
 async function load() {
@@ -498,7 +518,6 @@ async function load() {
     setStatus('Library ready. Select files from any folder.');
   } catch (error) {
     console.error('Library loading error:', error);
-    // ✅ REMOVED: $('item-count').textContent = 'Unavailable';
     setStatus(`${error.message}. Check your connection and try again.`, 'bad');
   } finally {
     await hideWelcome();
