@@ -109,7 +109,6 @@ function renderBreadcrumbs() {
   $('back-btn').disabled = path.length === 0 || mode === 'selected';
 }
 
-// ✅ UPDATED: Checkbox is removed from here
 function fileRow(item, selectedView = false) {
   const { parts, detail } = item;
   const key = pathKey(parts);
@@ -121,10 +120,12 @@ function fileRow(item, selectedView = false) {
   
   let badges = '';
   if (detail.has_qp) {
-    badges += `<button class="type-dot ${selectedTypes.qp ? 'active' : ''}" data-action="qp" data-parts="${esc(JSON.stringify(parts))}">QP</button>`;
+    // ✅ Changed class from "type-dot" to "type-btn"
+    badges += `<button class="type-btn ${selectedTypes.qp ? 'active' : ''}" data-action="qp" data-parts="${esc(JSON.stringify(parts))}">QP</button>`;
   }
   if (detail.has_ms) {
-    badges += `<button class="type-dot ms ${selectedTypes.ms ? 'active' : ''}" data-action="ms" data-parts="${esc(JSON.stringify(parts))}">MS</button>`;
+    // ✅ Changed class from "type-dot ms" to "type-btn ms"
+    badges += `<button class="type-btn ms ${selectedTypes.ms ? 'active' : ''}" data-action="ms" data-parts="${esc(JSON.stringify(parts))}">MS</button>`;
   }
 
   return `<div class="file-row ${isSelected ? 'selected' : ''}">
