@@ -1,5 +1,5 @@
 // Every PP — file-explorer style browser
-const API_BASE = 'https://api.everypastpaper.dpdns.org'; // ✅ UPDATED TO YOUR NEW DOMAIN
+const API_BASE = 'https://exampastpaper.kok775082.workers.dev'; // ✅ UPDATED TO YOUR NEW DOMAIN
 const MAX_FILES_PER_BATCH = 10;
 
 const tg = window.Telegram?.WebApp || null;
