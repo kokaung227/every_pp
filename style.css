@@ -90,7 +90,6 @@ button { cursor: pointer; }
 .file-row:last-child { border-bottom: 0; }
 .file-row:hover { background: #252525; }
 .file-row.selected { background: rgba(0, 210, 255, 0.08); border-left: 3px solid #00d2ff; }
-.file-check { width: 16px; height: 16px; accent-color: #00d2ff; flex: none; cursor: pointer; }
 .file-icon { background: rgba(255, 0, 85, 0.1); color: #ff0055; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; flex: none; }
 .file-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; }
 .file-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
