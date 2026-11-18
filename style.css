@@ -96,43 +96,49 @@ button { cursor: pointer; }
 .file-name { font-size: 12px; font-weight: 650; color: #f4f7fb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-meta { font-size: 10px; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Badges */
-.availability { display: flex; gap: 5px; flex: none; }
-/* Make the QP/MS badges clickable and show active state */
-.type-dot { 
-    font-size: 9px; 
-    font-weight: 800; 
-    letter-spacing: .04em; 
-    color: #00d2ff; 
-    background: rgba(0, 210, 255, 0.15); 
-    border-radius: 4px; 
-    padding: 4px 6px; 
-    border: 1px solid transparent; 
-    cursor: pointer; 
-    transition: all 0.2s ease; 
-}
-.type-dot:hover {
-    background: rgba(0, 210, 255, 0.3);
-}
-.type-dot.active { 
-    background: #00d2ff; 
-    color: #000; 
-    border-color: #00d2ff; 
+/* Clickable QP/MS Buttons */
+.availability { display: flex; gap: 8px; flex: none; }
+
+.type-btn {
+    width: 34px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    border-radius: 6px;
+    border: 2px solid #444;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
 }
 
-.type-dot.ms { 
-    color: #ff0055; 
-    background: rgba(255, 0, 85, 0.15); 
+.type-btn:hover {
+    border-color: #00d2ff;
+    color: #00d2ff;
 }
-.type-dot.ms:hover {
-    background: rgba(255, 0, 85, 0.3);
+
+.type-btn.active {
+    background: #00d2ff;
+    border-color: #00d2ff;
+    color: #000;
 }
-.type-dot.ms.active { 
-    background: #ff0055; 
-    color: #fff; 
-    border-color: #ff0055; 
+
+.type-btn.ms:hover {
+    border-color: #ff0055;
+    color: #ff0055;
 }
-.type-dot.ms { color: #ff0055; background: rgba(255, 0, 85, 0.15); }
+
+.type-btn.ms.active {
+    background: #ff0055;
+    border-color: #ff0055;
+    color: #fff;
+}
+
 .row-remove { border: 0; background: transparent; color: #9ca3af; font-size: 19px; padding: 3px 7px; transition: 0.2s; }
 .row-remove:hover { color: #ff4444; }
 
@@ -205,27 +211,9 @@ button { cursor: pointer; }
 }
 @media(max-width: 390px) {
     .availability { gap: 3px; }
-    .type-dot { padding: 3px 4px; }
     .dock-copy small { max-width: 210px; }
     .download-options label { font-size: 9px; }
     .wildcard-action { padding: 11px 10px; gap: 9px; }
     .wildcard-title { font-size: 11px; }
     .wildcard-arrow { font-size: 10px; }
-}
-/* Make the QP/MS badges clickable */
-button.type-dot { 
-    border: 0; 
-    font-family: inherit; 
-    cursor: pointer; 
-    transition: background 0.2s, transform 0.1s; 
-}
-button.type-dot:hover { 
-    background: rgba(0, 210, 255, 0.3); 
-    transform: scale(1.05); 
-}
-button.type-dot.ms:hover { 
-    background: rgba(255, 0, 85, 0.3); 
-}
-button.type-dot:active { 
-    transform: scale(0.95); 
 }
