@@ -127,7 +127,6 @@ function fileRow(item, selectedView = false) {
   }
 
   return `<div class="file-row ${isSelected ? 'selected' : ''}">
-    <input class="file-check" type="checkbox" data-paper-key="${esc(key)}" ${isSelected ? 'checked' : ''} aria-label="Select ${esc(name)}">
     <span class="file-icon">${fileIcon()}</span>
     <span class="file-copy"><span class="file-name">${esc(name)}</span><span class="file-meta">${esc(location)}</span></span>
     <span class="availability">${badges}</span>
@@ -211,6 +210,7 @@ async function sendWildcardChoice(scopePath, marker, button) {
   }
 }
 
+// Toggle QP or MS state when badge is clicked
 function toggleBadge(parts, type) {
   const key = pathKey(parts);
   const item = allPaperEntries().find(entry => pathKey(entry.parts) === key);
@@ -257,6 +257,7 @@ function bindRows() {
       render();
     });
   });
+  
   $('items').querySelectorAll('[data-open-path]').forEach(button => {
     button.addEventListener('click', () => {
       path = JSON.parse(button.dataset.openPath);
@@ -265,6 +266,7 @@ function bindRows() {
       render();
     });
   });
+  
   $('items').querySelectorAll('[data-wildcard-name]').forEach(button => {
     button.addEventListener('click', () => {
       const scopePath = JSON.parse(button.dataset.wildcardScope || '[]');
@@ -281,32 +283,6 @@ function bindRows() {
     });
   });
 
-  $('items').querySelectorAll('[data-paper-key]').forEach(input => {
-    input.addEventListener('change', () => {
-      const key = input.dataset.paperKey;
-      if (input.checked) {
-        const item = allPaperEntries().find(entry => pathKey(entry.parts) === key);
-        if (item) {
-          const needed = (item.detail.has_qp ? 1 : 0) + (item.detail.has_ms ? 1 : 0);
-          const currentCount = getJobs().length;
-          if (currentCount + needed > MAX_FILES_PER_BATCH) {
-            input.checked = false;
-            showLimitWarning(`Cannot select. Limit is ${MAX_FILES_PER_BATCH} files.`);
-            return;
-          }
-          selected.set(key, {
-            parts: item.parts,
-            detail: item.detail,
-            types: { qp: item.detail.has_qp, ms: item.detail.has_ms }
-          });
-        }
-      } else {
-        selected.delete(key);
-        limitWarningText = '';
-      }
-      render();
-    });
-  });
   $('items').querySelectorAll('[data-remove]').forEach(button => {
     button.addEventListener('click', () => {
       selected.delete(button.dataset.remove);
@@ -314,6 +290,7 @@ function bindRows() {
       render();
     });
   });
+  
   $('select-visible')?.addEventListener('change', event => {
     if (event.target.checked) {
       for (const item of currentVisible) {
@@ -343,7 +320,7 @@ function render() {
     $('sort-label').textContent = `${selected.size} selected`;
     html = currentVisible.length
       ? `<div class="file-list">${currentVisible.map(item => fileRow(item, true)).join('')}</div>`
-      : '<div class="empty"><strong>No files selected</strong>Browse folders and tick the files you want to collect.</div>';
+      : '<div class="empty"><strong>No files selected</strong>Browse folders and click QP or MS to select files.</div>';
   } else if (query) {
     const matches = allPaperEntries().filter(item => {
       const fullName = item.parts.join(' ').toLowerCase();
@@ -381,8 +358,11 @@ function render() {
 
   $('items').innerHTML = html;
   const selectAll = $('select-visible');
-  if (selectAll) selectAll.checked = currentVisible.length > 0 &&
-    currentVisible.every(item => selected.has(pathKey(item.parts)));
+  if (selectAll) {
+    selectAll.checked = currentVisible.length > 0 &&
+      currentVisible.every(item => selected.has(pathKey(item.parts)));
+  }
+  
   bindRows();
   $('nav-selected-count').textContent = selected.size;
   $('nav-library').classList.toggle('active', mode !== 'selected');
@@ -392,6 +372,7 @@ function render() {
   updateDock();
 }
 
+// Generates the jobs array based on which types are toggled true
 function getJobs() {
   const jobs = [];
   for (const item of selected.values()) {
@@ -439,6 +420,7 @@ function updateLimitWarning() {
   }
 }
 
+// Selects BOTH QP and MS (if available) for the "Select visible" checkbox
 function trySelectPaper(item) {
   const key = pathKey(item.parts);
   if (selected.has(key)) return true;
@@ -519,7 +501,7 @@ async function load() {
     if (!response.ok) throw new Error(`Library request failed (${response.status})`);
     tree = await response.json();
     render();
-    setStatus('Library ready. Select files from any folder.');
+    setStatus('Library ready. Click QP or MS to select files.');
   } catch (error) {
     console.error('Library loading error:', error);
     setStatus(`${error.message}. Check your connection and try again.`, 'bad');
